@@ -11,9 +11,9 @@
       "googleId": "google-sub-1092837461523",
       "photo": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
       "registrationDate": "2026-09-08T14:11:37.769Z",
-      "lastLogin": "2026-09-15T15:03:25.627Z",
-      "loginCount": 17,
-      "lastActive": "2026-09-15T15:03:25.627Z",
+      "lastLogin": "2026-09-15T15:34:05.221Z",
+      "loginCount": 20,
+      "lastActive": "2026-09-15T15:34:05.221Z",
       "currentDay": "T1",
       "completedDays": [
         "T1"
@@ -28,6 +28,42 @@
         "p-58"
       ],
       "streak": 4,
+      "accountStatus": "active",
+      "revealedProblems": []
+    },
+    "usr_jowlk2h": {
+      "id": "usr_jowlk2h",
+      "name": "New Learner",
+      "email": "newlearner@gmail.com",
+      "googleId": "gid_cxr8f1mtpho",
+      "photo": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80",
+      "registrationDate": "2026-09-15T15:22:41.487Z",
+      "lastLogin": "2026-09-15T15:22:45.649Z",
+      "loginCount": 2,
+      "lastActive": "2026-09-15T15:22:45.649Z",
+      "currentDay": "T1",
+      "completedDays": [],
+      "solvedProblems": [],
+      "attemptedProblems": [],
+      "streak": 1,
+      "accountStatus": "active",
+      "revealedProblems": []
+    },
+    "usr_16sp6ue": {
+      "id": "usr_16sp6ue",
+      "name": "DSA Student",
+      "email": "student99@gmail.com",
+      "googleId": "gid_8jg8uc4lar3",
+      "photo": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80",
+      "registrationDate": "2026-09-15T15:34:08.400Z",
+      "lastLogin": "2026-09-15T15:34:08.400Z",
+      "loginCount": 1,
+      "lastActive": "2026-09-15T15:34:08.400Z",
+      "currentDay": "T1",
+      "completedDays": [],
+      "solvedProblems": [],
+      "attemptedProblems": [],
+      "streak": 1,
       "accountStatus": "active",
       "revealedProblems": []
     }
@@ -1620,6 +1656,22 @@
   "certificates": [],
   "notifications": [
     {
+      "id": "notif-1789486448401",
+      "title": "New Learner Registered",
+      "message": "DSA Student (student99@gmail.com) joined via Google Authentication.",
+      "type": "system",
+      "read": false,
+      "createdAt": "2026-09-15T15:34:08.400Z"
+    },
+    {
+      "id": "notif-1789485761488",
+      "title": "New Learner Registered",
+      "message": "New Learner (newlearner@gmail.com) joined via Google Authentication.",
+      "type": "system",
+      "read": false,
+      "createdAt": "2026-09-15T15:22:41.487Z"
+    },
+    {
       "id": "notif-1",
       "title": "Welcome to Python Programming With DSA",
       "message": "Your enterprise portal is configured. Start with Day 1: Pattern Programming.",
@@ -1638,6 +1690,13 @@
     }
   ],
   "auditLogs": [
+    {
+      "id": "audit-1789485758290",
+      "timestamp": "2026-09-15T15:22:38.290Z",
+      "adminId": "KAPILADMIN",
+      "action": "ADMIN_LOGIN_SUCCESS",
+      "details": "Administrator authenticated into portal successfully"
+    },
     {
       "id": "audit-1789484625636",
       "timestamp": "2026-09-15T15:03:45.636Z",

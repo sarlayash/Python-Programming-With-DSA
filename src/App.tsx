@@ -8,6 +8,7 @@ import { BadgesView } from './components/BadgesView';
 import { CertificateView } from './components/CertificateView';
 import { AdminDashboard } from './components/AdminDashboard';
 import { api, setStoredToken, getStoredToken, clearStoredToken } from './lib/api';
+import { logoutFromFirebase, checkFirebaseRedirectResult } from './lib/firebase';
 import { DayCurriculum, Problem, Badge, EarnedBadge, Certificate, LearnerProfile, AppNotification } from './types';
 import { Award, CheckCircle, Sparkles } from 'lucide-react';
 
@@ -53,9 +54,8 @@ export default function App() {
         setProblems(probData);
         setBadges(badgeData);
 
-        // Check if token exists or restore demo session
+        // Check if existing token exists
         const existingToken = getStoredToken();
-        const hasExplicitlyLoggedOut = localStorage.getItem('kapil_logged_out') === 'true';
 
         if (existingToken) {
           try {
@@ -81,29 +81,32 @@ export default function App() {
             console.warn('Session resume note:', e);
             clearStoredToken();
           }
-        } else if (!hasExplicitlyLoggedOut) {
-          // Initialize automatic learner session for instant seamless preview
+        } else {
+          // Check if user just returned from a Firebase Google redirect sign-in
           try {
-            const demoRes = await api.googleLogin({
-              email: 'kapilnarula27july@gmail.com',
-              name: 'Kapil Narula',
-              googleId: 'gid_kapil_01',
-              photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
-            });
-            setStoredToken(demoRes.token);
-            setCurrentUser(demoRes.user);
-            setUserRole('learner');
-
-            const [bData, cData, nData] = await Promise.all([
-              api.getLearnerBadges(),
-              api.getLearnerCertificate(),
-              api.getNotifications()
-            ]);
-            setEarnedBadges(bData);
-            setCertificate(cData);
-            setNotifications(nData);
-          } catch (err) {
-            console.error('Demo login setup error:', err);
+            const redirectUser = await checkFirebaseRedirectResult();
+            if (redirectUser && redirectUser.email) {
+              const res = await api.googleLogin({
+                email: redirectUser.email,
+                name: redirectUser.name,
+                photo: redirectUser.photo,
+                googleId: redirectUser.googleId,
+                credential: redirectUser.idToken
+              });
+              setStoredToken(res.token);
+              setCurrentUser(res.user);
+              setUserRole('learner');
+              const [bData, cData, nData] = await Promise.all([
+                api.getLearnerBadges(),
+                api.getLearnerCertificate(),
+                api.getNotifications()
+              ]);
+              setEarnedBadges(bData);
+              setCertificate(cData);
+              setNotifications(nData);
+            }
+          } catch (e) {
+            console.warn('Redirect auth check notice:', e);
           }
         }
       } catch (err) {
@@ -142,6 +145,7 @@ export default function App() {
   const handleLogout = async () => {
     try {
       await api.logout();
+      await logoutFromFirebase();
     } catch {}
     clearStoredToken();
     localStorage.setItem('kapil_logged_out', 'true');
