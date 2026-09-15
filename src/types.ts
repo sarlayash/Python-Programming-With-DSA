@@ -211,3 +211,34 @@ export interface AdminOverviewStats {
   certificatesIssued: number;
   pendingActivities: number;
 }
+
+export interface MCQOption {
+  id: string; // 'A' | 'B' | 'C' | 'D'
+  text: string;
+}
+
+export interface MCQQuestion {
+  id: string;
+  topicCode: string;
+  topicName: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  question: string;
+  codeSnippet?: string;
+  options: MCQOption[];
+  correctOptionId: string;
+  explanation: string;
+}
+
+export interface MCQQuizResult {
+  id: string;
+  date: string;
+  topicCode: string;
+  topicName: string;
+  totalQuestions: number;
+  correctCount: number;
+  percentage: number;
+  passed: boolean; // >= 80%
+  earnedBadge?: EarnedBadge | null;
+  earnedCertificate?: Certificate | null;
+  userAnswers: Record<string, string>;
+}

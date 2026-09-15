@@ -18,6 +18,7 @@ import {
   clientAdminLogin,
   clientExecutePython,
   clientSubmitCode,
+  clientSubmitMCQQuiz,
   MASTER_CERTIFICATE
 } from './clientStore';
 import { INITIAL_BADGES } from '../../server/curriculumData';
@@ -238,6 +239,34 @@ export const api = {
         spaceComplexity: problem?.spaceComplexity || 'O(1)',
         learningTakeaway: problem?.learningTakeaway || 'Always analyze boundary coordinates first.'
       };
+    }
+  },
+
+  submitMCQQuiz: async (payload: {
+    learnerId?: string;
+    learnerName?: string;
+    learnerEmail?: string;
+    topicCode: string;
+    topicName: string;
+    totalQuestions: number;
+    correctCount: number;
+    percentage: number;
+    answers: Record<string, string>;
+  }) => {
+    try {
+      return await request<{
+        success: boolean;
+        passed: boolean;
+        percentage: number;
+        correctCount: number;
+        newlyEarnedBadge: EarnedBadge | null;
+        newlyEarnedCertificate: Certificate | null;
+      }>('/api/mcq/submit', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    } catch {
+      return clientSubmitMCQQuiz(payload);
     }
   },
 

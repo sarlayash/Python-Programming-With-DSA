@@ -569,6 +569,98 @@ app.post('/api/code/reveal-answer', (req, res) => {
   });
 });
 
+// MCQ Spinning Wheel / Daily Challenge Quiz Submission
+app.post('/api/mcq/submit', (req, res) => {
+  const { topicCode, topicName, totalQuestions, correctCount, percentage, learnerName, learnerEmail } = req.body;
+  const user = (req as any).user;
+  const learnerId = user ? user.id : 'usr_kapil_01';
+  let learner = db.getLearnerById(learnerId);
+
+  if (!learner) {
+    learner = {
+      id: learnerId,
+      name: learnerName || (user?.name || 'Kapil Narula'),
+      email: learnerEmail || (user?.email || 'kapilnarula27july@gmail.com'),
+      googleId: 'gid_' + learnerId,
+      registrationDate: new Date().toISOString(),
+      lastLogin: new Date().toISOString(),
+      loginCount: 1,
+      lastActive: new Date().toISOString(),
+      currentDay: 'T1',
+      completedDays: [],
+      solvedProblems: [],
+      attemptedProblems: [],
+      streak: 1,
+      accountStatus: 'active',
+      revealedProblems: []
+    };
+    db.saveLearner(learner);
+  }
+
+  const passed = percentage >= 80;
+  let newlyEarnedBadge: EarnedBadge | null = null;
+  let newlyEarnedCertificate: Certificate | null = null;
+
+  if (passed) {
+    const cleanTopic = (topicCode || 'T1').toUpperCase();
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const uniqueBadgeId = `BDG-SPIN-${cleanTopic}-${randomSuffix}-KN`;
+
+    newlyEarnedBadge = {
+      badgeId: `badge-spin-${cleanTopic.toLowerCase()}`,
+      learnerId: learner.id,
+      learnerName: learner.name,
+      badgeName: cleanTopic === 'MIXED' || cleanTopic === 'DAILY' ? 'Daily Spin & DSA Master' : `${cleanTopic} Wheel Champion`,
+      topicCode: cleanTopic,
+      description: `Scored ${percentage}% (${correctCount}/${totalQuestions}) on the official ${topicName || cleanTopic} Spinning Wheel Challenge.`,
+      issuedDate: new Date().toISOString(),
+      uniqueBadgeId,
+      verificationUrl: `/verify/badge/${uniqueBadgeId}`,
+      icon: 'Award'
+    };
+    db.awardBadge(newlyEarnedBadge);
+
+    const certificateId = `CERT-SPIN-${cleanTopic}-${randomSuffix}-KN`;
+    newlyEarnedCertificate = {
+      certificateId,
+      learnerId: learner.id,
+      learnerName: learner.name,
+      learnerEmail: learner.email,
+      courseTitle: 'Python Programming With DSA',
+      subtitle: `Spinning Wheel Mastery: ${topicName || cleanTopic} - Powered By Kapil`,
+      issuedDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+      status: 'issued',
+      grade: percentage === 100 ? 'Grandmaster Distinction (100%)' : `Executive Honors (${percentage}%)`,
+      verificationUrl: `/verify/cert/${certificateId}`,
+      completionSummary: {
+        totalSolved: correctCount,
+        totalAttempted: totalQuestions,
+        daysCompleted: 1
+      }
+    };
+    db.issueCertificate(newlyEarnedCertificate);
+
+    db.addNotification({
+      id: `notif-spin-${Date.now()}`,
+      title: '🎯 Spinning Wheel Challenge Conquered!',
+      message: `Outstanding! You scored ${percentage}% in ${topicName || cleanTopic} and unlocked an official verified Badge and Certificate!`,
+      type: 'certificate',
+      targetUserId: learner.id,
+      read: false,
+      createdAt: new Date().toISOString()
+    });
+  }
+
+  res.json({
+    success: true,
+    passed,
+    percentage,
+    correctCount,
+    newlyEarnedBadge,
+    newlyEarnedCertificate
+  });
+});
+
 // --- BADGES & CERTIFICATES ---
 
 app.get('/api/badges', (req, res) => {

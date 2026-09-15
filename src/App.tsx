@@ -8,6 +8,7 @@ import { BadgesView } from './components/BadgesView';
 import { CertificateView } from './components/CertificateView';
 import { AdminDashboard } from './components/AdminDashboard';
 import { VerificationView } from './components/VerificationView';
+import { SpinningWheelView } from './components/SpinningWheelView';
 import { api, setStoredToken, getStoredToken, clearStoredToken } from './lib/api';
 import { logoutFromFirebase, checkFirebaseRedirectResult } from './lib/firebase';
 import { parseVerificationTarget, ParsedVerificationTarget } from './lib/verification';
@@ -319,6 +320,17 @@ export default function App() {
                 learner={userRole === 'learner' ? currentUser : null}
                 onProblemSolved={handleProblemSolved}
                 onOpenAuth={() => handleOpenAuth('learner')}
+              />
+            )}
+
+            {currentTab === 'wheel' && (
+              <SpinningWheelView
+                learner={userRole === 'learner' ? currentUser : null}
+                onOpenAuth={() => handleOpenAuth('learner')}
+                onNavigateToTab={(tab, ctx) => handleNavigate(tab, ctx)}
+                onNavigateToVerify={(type, id) => {
+                  setVerifyTarget({ type, id });
+                }}
               />
             )}
 

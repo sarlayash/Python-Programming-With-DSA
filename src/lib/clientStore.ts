@@ -11,7 +11,7 @@ import {
   AuditLog,
   AdminOverviewStats
 } from '../types';
-import { getVerificationUrl } from './verification';
+import { getVerificationUrl, generateHighContrastQR } from './verification';
 
 const STORE_KEY = 'kapil_dsa_client_db_v1';
 const TOKEN_KEY = 'kapil_dsa_auth_token';
@@ -603,6 +603,145 @@ export function clientSubmitCode(learnerId: string, problemId: string, code: str
     hintToProvide: null,
     strongerGuidance: null,
     revealAnswerEnabled: true,
+    newlyEarnedBadge,
+    newlyEarnedCertificate
+  };
+}
+
+// Client-side Spinning Wheel & Daily MCQ Quiz Submission Handler
+export async function clientSubmitMCQQuiz(payload: {
+  learnerId?: string;
+  learnerName?: string;
+  learnerEmail?: string;
+  topicCode: string;
+  topicName: string;
+  totalQuestions: number;
+  correctCount: number;
+  percentage: number;
+  answers: Record<string, string>;
+}): Promise<{
+  success: boolean;
+  passed: boolean;
+  percentage: number;
+  correctCount: number;
+  newlyEarnedBadge: EarnedBadge | null;
+  newlyEarnedCertificate: Certificate | null;
+}> {
+  const db = loadClientDB();
+  const session = getClientSession();
+  const learnerId = payload.learnerId || (session?.role === 'learner' ? session.user.id : 'usr_kapil_01');
+  let learner = db.learners[learnerId];
+
+  if (!learner) {
+    learner = {
+      id: learnerId,
+      name: payload.learnerName || (session?.user?.name || 'Kapil Narula'),
+      email: payload.learnerEmail || (session?.user?.email || 'kapilnarula27july@gmail.com'),
+      googleId: 'gid_' + learnerId,
+      registrationDate: new Date().toISOString(),
+      lastLogin: new Date().toISOString(),
+      loginCount: 1,
+      lastActive: new Date().toISOString(),
+      currentDay: 'T1',
+      completedDays: [],
+      solvedProblems: [],
+      attemptedProblems: [],
+      streak: 1,
+      accountStatus: 'active',
+      revealedProblems: []
+    };
+    db.learners[learnerId] = learner;
+  }
+
+  const passed = payload.percentage >= 80;
+  let newlyEarnedBadge: EarnedBadge | null = null;
+  let newlyEarnedCertificate: Certificate | null = null;
+
+  if (passed) {
+    const cleanTopic = payload.topicCode.toUpperCase();
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const uniqueBadgeId = `BDG-SPIN-${cleanTopic}-${randomSuffix}-KN`;
+
+    // 1. Issue Badge
+    newlyEarnedBadge = {
+      badgeId: `badge-spin-${cleanTopic.toLowerCase()}`,
+      learnerId: learner.id,
+      learnerName: learner.name,
+      badgeName: cleanTopic === 'MIXED' || cleanTopic === 'DAILY'
+        ? 'Daily Spin & DSA Master'
+        : `${cleanTopic} Wheel Champion`,
+      topicCode: cleanTopic,
+      description: `Scored ${payload.percentage}% (${payload.correctCount}/${payload.totalQuestions}) on the official ${payload.topicName} Spinning Wheel Challenge.`,
+      issuedDate: new Date().toISOString(),
+      uniqueBadgeId,
+      verificationUrl: getVerificationUrl('badge', uniqueBadgeId),
+      icon: 'Award'
+    };
+
+    // Add to earned badges if not already there
+    db.earnedBadges.unshift(newlyEarnedBadge);
+
+    // 2. Issue Verified Certificate
+    const certificateId = `CERT-SPIN-${cleanTopic}-${randomSuffix}-KN`;
+    const certVerificationUrl = getVerificationUrl('cert', certificateId);
+    let qrCodeDataUrl: string | undefined = undefined;
+    try {
+      qrCodeDataUrl = await generateHighContrastQR(certVerificationUrl);
+    } catch {
+      // Fallback if qr fails
+    }
+
+    newlyEarnedCertificate = {
+      certificateId,
+      learnerId: learner.id,
+      learnerName: learner.name,
+      learnerEmail: learner.email,
+      courseTitle: 'Python Programming With DSA',
+      subtitle: `Spinning Wheel Mastery: ${payload.topicName} - Powered By Kapil`,
+      issuedDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+      status: 'issued',
+      grade: payload.percentage === 100
+        ? 'Grandmaster Distinction (100%)'
+        : `Executive Honors (${payload.percentage}%)`,
+      verificationUrl: certVerificationUrl,
+      qrCodeDataUrl,
+      completionSummary: {
+        totalSolved: payload.correctCount,
+        totalAttempted: payload.totalQuestions,
+        daysCompleted: 1
+      }
+    };
+
+    db.certificates.unshift(newlyEarnedCertificate);
+
+    // 3. System Notification
+    db.notifications.unshift({
+      id: `notif-spin-${Date.now()}`,
+      title: '🎯 Spinning Wheel Challenge Conquered!',
+      message: `Outstanding! You scored ${payload.percentage}% in ${payload.topicName} and unlocked an official verified Badge and Certificate!`,
+      type: 'certificate',
+      targetUserId: learner.id,
+      read: false,
+      createdAt: new Date().toISOString()
+    });
+
+    // 4. Audit Log
+    db.auditLogs.unshift({
+      id: `audit-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      adminId: 'SYSTEM',
+      action: 'MCQ_CHALLENGE_HONOR_AWARDED',
+      details: `Issued ${uniqueBadgeId} and ${certificateId} to ${learner.name} (${payload.percentage}%)`
+    });
+  }
+
+  saveClientDB(db);
+
+  return {
+    success: true,
+    passed,
+    percentage: payload.percentage,
+    correctCount: payload.correctCount,
     newlyEarnedBadge,
     newlyEarnedCertificate
   };

@@ -12,7 +12,8 @@ import {
   CheckCircle,
   LayoutDashboard,
   ExternalLink,
-  QrCode
+  QrCode,
+  RotateCw
 } from 'lucide-react';
 import { LearnerProfile, AppNotification } from '../types';
 
@@ -92,6 +93,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Code2 className="w-3.5 h-3.5" />
               Coding Lab
+            </button>
+            <button
+              onClick={() => onSelectTab('wheel')}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors relative ${
+                currentTab === 'wheel'
+                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold shadow-sm'
+                  : 'text-amber-300 hover:text-white hover:bg-slate-800/60'
+              }`}
+              title="Daily Spinning Wheel & 10 MCQs"
+            >
+              <RotateCw className="w-3.5 h-3.5 text-amber-400" />
+              <span>Spin & Quiz</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
             </button>
             <button
               onClick={() => onSelectTab('badges')}
@@ -272,6 +286,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             className={`px-2.5 py-1 rounded whitespace-nowrap ${currentTab === 'ide' ? 'text-amber-400 font-bold bg-slate-800' : 'text-slate-300'}`}
           >
             Coding Lab
+          </button>
+          <button
+            onClick={() => onSelectTab('wheel')}
+            className={`px-2.5 py-1 rounded whitespace-nowrap flex items-center gap-1 ${currentTab === 'wheel' ? 'text-slate-950 font-bold bg-amber-500' : 'text-amber-300 font-semibold'}`}
+          >
+            <RotateCw className="w-3 h-3" />
+            Spin & Quiz
           </button>
           <button
             onClick={() => onSelectTab('badges')}
