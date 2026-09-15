@@ -1,6 +1,7 @@
 import { DayCurriculum, Problem, Badge } from '../src/types';
+import { DAY_PROGRAMS_AND_TIPS } from '../src/data/curriculumProgramsData';
 
-export const INITIAL_CURRICULUM: DayCurriculum[] = [
+const BASE_CURRICULUM: DayCurriculum[] = [
   {
     code: 'T1',
     dayNumber: 1,
@@ -274,6 +275,12 @@ Strings in Python are immutable sequences of Unicode codepoints.`,
     isPublished: true
   }
 ];
+
+export const INITIAL_CURRICULUM: DayCurriculum[] = BASE_CURRICULUM.map(day => ({
+  ...day,
+  basicPrograms: DAY_PROGRAMS_AND_TIPS[day.code]?.basicPrograms || [],
+  tipsAndTricks: DAY_PROGRAMS_AND_TIPS[day.code]?.tipsAndTricks || []
+}));
 
 export const INITIAL_PROBLEMS: Problem[] = [
   // --- T1 Pattern Programming ---

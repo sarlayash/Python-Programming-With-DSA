@@ -30,7 +30,7 @@ export default function App() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [selectedProblemId, setSelectedProblemId] = useState<string | undefined>(undefined);
   const [curriculumSelectedTopic, setCurriculumSelectedTopic] = useState<string | undefined>(undefined);
-  const [curriculumSubTab, setCurriculumSubTab] = useState<'problems' | 'notes' | 'interview' | 'errors'>('problems');
+  const [curriculumSubTab, setCurriculumSubTab] = useState<'problems' | 'solved' | 'tips' | 'notes' | 'interview' | 'errors'>('problems');
 
   // Congratulatory modal when a badge or cert is earned
   const [congratsData, setCongratsData] = useState<{

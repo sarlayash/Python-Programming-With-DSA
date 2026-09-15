@@ -65,6 +65,28 @@ export interface Problem {
   testCases: TestCase[];
 }
 
+export interface SolvedBasicProgram {
+  id: string;
+  title: string;
+  difficulty: 'Beginner' | 'Easy' | 'Medium';
+  concept: string;
+  problemStatement: string;
+  logicSteps: string[];
+  code: string;
+  sampleInput: string;
+  sampleOutput: string;
+  timeComplexity: string;
+  spaceComplexity: string;
+  tipOrTrick: string;
+}
+
+export interface DayTipAndTrick {
+  title: string;
+  category: 'Pythonic Shortcut' | 'Logic Building' | 'Edge Case Guard' | 'Performance Trick' | 'Interview Secret';
+  explanation: string;
+  codeSnippet?: string;
+}
+
 export interface DayCurriculum {
   code: string; // T1 ... T10
   dayNumber: number;
@@ -76,6 +98,8 @@ export interface DayCurriculum {
   commonErrors: CommonError[];
   debuggingStrategies: string[];
   practicalExamples: PracticalExample[];
+  basicPrograms?: SolvedBasicProgram[];
+  tipsAndTricks?: DayTipAndTrick[];
   inClassProblemIds: string[];
   postClassProblemIds: string[];
   completionCriteria: {

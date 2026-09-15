@@ -268,6 +268,16 @@ export function loadClientDB(): ClientDB {
     }
   }
 
+  // Ensure curriculum days have the latest basic programs and tips & tricks
+  db.curriculum = db.curriculum.map(day => {
+    const fresh = INITIAL_CURRICULUM.find(d => d.code === day.code);
+    return {
+      ...day,
+      basicPrograms: fresh?.basicPrograms || day.basicPrograms || [],
+      tipsAndTricks: fresh?.tipsAndTricks || day.tipsAndTricks || []
+    };
+  });
+
   saveClientDB(db);
   return db;
 }
