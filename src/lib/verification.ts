@@ -9,11 +9,20 @@ export interface ParsedVerificationTarget {
  * Computes an absolute verification URL that is 100% resilient across:
  * - GitHub Pages (preserving repository base path like /Python-Programming-With-DSA/)
  * - Cloud Run / Custom Domain deployments
- * - Local development
+ * - Local development (defaults to live verification target so mobile camera scans work)
  */
 export function getVerificationUrl(type: 'cert' | 'badge', id: string): string {
+  const cleanId = encodeURIComponent(id.trim());
+
   if (typeof window === 'undefined') {
-    return `/#/verify/${type}/${encodeURIComponent(id)}`;
+    return `https://sarlayash.github.io/Python-Programming-With-DSA/#/verify/${type}/${cleanId}`;
+  }
+
+  const hostname = window.location.hostname;
+  // If running on localhost/127.0.0.1, phone camera scans cannot reach local computer loopback,
+  // so route to live public repository domain where phone can open and verify instantly
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return `https://sarlayash.github.io/Python-Programming-With-DSA/#/verify/${type}/${cleanId}`;
   }
 
   // Preserve the exact path before hash or query string, stripping trailing index.html
@@ -24,7 +33,7 @@ export function getVerificationUrl(type: 'cert' | 'badge', id: string): string {
     : baseWithoutHashOrQuery;
 
   // Use hash-based routing: universally supported without server rewrites on static hosting
-  return `${cleanBase}/#/verify/${type}/${encodeURIComponent(id)}`;
+  return `${cleanBase}/#/verify/${type}/${cleanId}`;
 }
 
 /**
@@ -34,37 +43,51 @@ export function parseVerificationTarget(inputString: string): ParsedVerification
   if (!inputString) return null;
   const str = inputString.trim();
 
-  // 1. Hash route pattern: #/verify/cert/XYZ or #/verify/badge/XYZ
+  // 1. Hash route pattern: #/verify/cert/XYZ or #/verify/badge/XYZ or /verify/...
   if (str.includes('/verify/')) {
-    const parts = str.split('/verify/')[1]?.split('?')[0]?.split('#')[0]?.split('/') || [];
+    const afterVerify = str.split('/verify/')[1] || '';
+    const cleanSegment = afterVerify.split('?')[0].split('#')[0];
+    const parts = cleanSegment.split('/').filter(Boolean);
+
     if (parts.length >= 2) {
       const type = parts[0].toLowerCase().includes('cert') ? 'cert' : 'badge';
-      const id = decodeURIComponent(parts[1]);
+      const id = decodeURIComponent(parts[1]).trim();
       if (id) return { type, id };
+    } else if (parts.length === 1 && parts[0]) {
+      const raw = decodeURIComponent(parts[0]).trim();
+      const upper = raw.toUpperCase();
+      if (upper.startsWith('CERT') || upper.includes('ENTERPRISE') || upper === 'COMPLETE') {
+        return { type: 'cert', id: raw };
+      } else {
+        return { type: 'badge', id: raw };
+      }
     }
   }
 
-  // 2. Query param pattern: ?verify=cert&id=XYZ
-  if (str.includes('verify=') || str.includes('id=')) {
+  // 2. Query param pattern: ?verify=cert&id=XYZ or ?cert=XYZ or ?badge=XYZ
+  if (str.includes('?') || str.includes('&') || str.includes('=')) {
     try {
-      // Use URL or URLSearchParams
       const queryPart = str.includes('?') ? str.split('?')[1] : str;
       const params = new URLSearchParams(queryPart);
       const verifyType = params.get('verify');
       const id = params.get('id');
       if (id) {
         const type = verifyType === 'badge' ? 'badge' : 'cert';
-        return { type, id: decodeURIComponent(id) };
+        return { type, id: decodeURIComponent(id).trim() };
       }
+      const certParam = params.get('cert');
+      if (certParam) return { type: 'cert', id: decodeURIComponent(certParam).trim() };
+      const badgeParam = params.get('badge');
+      if (badgeParam) return { type: 'badge', id: decodeURIComponent(badgeParam).trim() };
     } catch {}
   }
 
   // 3. Raw Credential ID heuristics
   const upper = str.toUpperCase();
-  if (upper.startsWith('CERT-') || upper.includes('ENTERPRISE') || upper.startsWith('C-')) {
+  if (upper.startsWith('CERT-') || upper.includes('ENTERPRISE') || upper.startsWith('C-') || upper === 'COMPLETE') {
     return { type: 'cert', id: str };
   }
-  if (upper.startsWith('UB-') || upper.startsWith('BDG-') || upper.startsWith('BADGE-') || upper.startsWith('T')) {
+  if (upper.startsWith('UB-') || upper.startsWith('BDG-') || upper.startsWith('BADGE-') || upper.match(/^T(10|[1-9])/)) {
     return { type: 'badge', id: str };
   }
 

@@ -1017,6 +1017,46 @@ export const INITIAL_BADGES: Badge[] = [
     issuedCount: 95
   },
   {
+    id: 'badge-t5',
+    name: 'Matrix Transformer',
+    description: 'Mastered in-place matrix rotations, reflections, and diagonal mathematics.',
+    topicCode: 'T5',
+    icon: 'Compass',
+    earningCriteria: 'Solve 2 problems in Day 5',
+    badgeDesignColor: '#1e293b',
+    issuedCount: 92
+  },
+  {
+    id: 'badge-t6',
+    name: 'String Alchemist',
+    description: 'Demonstrated mastery in string manipulation, character frequencies, and encoding.',
+    topicCode: 'T6',
+    icon: 'FileText',
+    earningCriteria: 'Solve 2 problems in Day 6',
+    badgeDesignColor: '#334155',
+    issuedCount: 89
+  },
+  {
+    id: 'badge-t7',
+    name: 'Substring Specialist',
+    description: 'Conquered palindromic substrings, window bounds, and substring searches.',
+    topicCode: 'T7',
+    icon: 'Search',
+    earningCriteria: 'Solve 2 problems in Day 7',
+    badgeDesignColor: '#0f172a',
+    issuedCount: 85
+  },
+  {
+    id: 'badge-t8',
+    name: 'Dictionary Specialist',
+    description: 'Mastered hash map lookups, frequency hashing, and anagram grouping in O(1).',
+    topicCode: 'T8',
+    icon: 'Database',
+    earningCriteria: 'Solve 2 problems in Day 8',
+    badgeDesignColor: '#1e293b',
+    issuedCount: 82
+  },
+  {
     id: 'badge-t9',
     name: 'Modular Engineer',
     description: 'Designed decoupled pure functions and single-pass leaders algorithms.',

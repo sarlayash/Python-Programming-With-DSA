@@ -11,9 +11,151 @@ import {
   AuditLog,
   AdminOverviewStats
 } from '../types';
+import { getVerificationUrl } from './verification';
 
 const STORE_KEY = 'kapil_dsa_client_db_v1';
 const TOKEN_KEY = 'kapil_dsa_auth_token';
+
+export const MASTER_CERTIFICATE: Certificate = {
+  certificateId: 'CERT-KAPIL-ENTERPRISE-8910',
+  learnerId: 'usr_kapil_01',
+  learnerName: 'Kapil Narula',
+  learnerEmail: 'kapilnarula27july@gmail.com',
+  courseTitle: 'Python Programming With DSA',
+  subtitle: 'Powered By Kapil',
+  issuedDate: 'September 15, 2026',
+  status: 'issued',
+  verificationUrl: getVerificationUrl('cert', 'CERT-KAPIL-ENTERPRISE-8910'),
+  grade: 'Executive Honors (Enterprise Distinction)',
+  completionSummary: {
+    totalSolved: 8,
+    totalAttempted: 10,
+    daysCompleted: 4
+  }
+};
+
+export const INITIAL_EARNED_BADGES: EarnedBadge[] = [
+  {
+    badgeId: 'badge-t1',
+    learnerId: 'usr_kapil_01',
+    learnerName: 'Kapil Narula',
+    badgeName: 'Pattern Architect',
+    description: 'Mastered 2D coordinate patterns, pyramids, and geometric ASCII formatting.',
+    topicCode: 'T1',
+    uniqueBadgeId: 'BDG-T1-8934-KN',
+    icon: 'Sparkles',
+    issuedDate: new Date(Date.now() - 3 * 86400000).toISOString(),
+    verificationUrl: getVerificationUrl('badge', 'BDG-T1-8934-KN')
+  },
+  {
+    badgeId: 'badge-t2',
+    learnerId: 'usr_kapil_01',
+    learnerName: 'Kapil Narula',
+    badgeName: 'Array Vanguard',
+    description: 'Demonstrated mastery over 1D sequences, binary search insertions, and frequency counts.',
+    topicCode: 'T2',
+    uniqueBadgeId: 'BDG-T2-4129-KN',
+    icon: 'Layers',
+    issuedDate: new Date(Date.now() - 2 * 86400000).toISOString(),
+    verificationUrl: getVerificationUrl('badge', 'BDG-T2-4129-KN')
+  },
+  {
+    badgeId: 'badge-t3',
+    learnerId: 'usr_kapil_01',
+    learnerName: 'Kapil Narula',
+    badgeName: 'Sequence Strategist',
+    description: 'Solved advanced two-pointer problems and calculated resilient medians.',
+    topicCode: 'T3',
+    uniqueBadgeId: 'BDG-T3-7741-KN',
+    icon: 'Zap',
+    issuedDate: new Date(Date.now() - 86400000).toISOString(),
+    verificationUrl: getVerificationUrl('badge', 'BDG-T3-7741-KN')
+  },
+  {
+    badgeId: 'badge-t4',
+    learnerId: 'usr_kapil_01',
+    learnerName: 'Kapil Narula',
+    badgeName: 'Matrix Navigator',
+    description: 'Conquered 2D grid traversals and warehouse snake navigation patterns.',
+    topicCode: 'T4',
+    uniqueBadgeId: 'BDG-T4-5521-KN',
+    icon: 'Grid',
+    issuedDate: new Date().toISOString(),
+    verificationUrl: getVerificationUrl('badge', 'BDG-T4-5521-KN')
+  },
+  {
+    badgeId: 'badge-t5',
+    learnerId: 'usr_kapil_01',
+    learnerName: 'Kapil Narula',
+    badgeName: 'Matrix Transformer',
+    description: 'Mastered in-place matrix rotations, reflections, and diagonal mathematics.',
+    topicCode: 'T5',
+    uniqueBadgeId: 'BDG-T5-6632-KN',
+    icon: 'Compass',
+    issuedDate: new Date().toISOString(),
+    verificationUrl: getVerificationUrl('badge', 'BDG-T5-6632-KN')
+  },
+  {
+    badgeId: 'badge-t6',
+    learnerId: 'usr_kapil_01',
+    learnerName: 'Kapil Narula',
+    badgeName: 'String Alchemist',
+    description: 'Demonstrated mastery in string manipulation, character frequencies, and encoding.',
+    topicCode: 'T6',
+    uniqueBadgeId: 'BDG-T6-7789-KN',
+    icon: 'FileText',
+    issuedDate: new Date().toISOString(),
+    verificationUrl: getVerificationUrl('badge', 'BDG-T6-7789-KN')
+  },
+  {
+    badgeId: 'badge-t7',
+    learnerId: 'usr_kapil_01',
+    learnerName: 'Kapil Narula',
+    badgeName: 'Substring Specialist',
+    description: 'Conquered palindromic substrings, window bounds, and substring searches.',
+    topicCode: 'T7',
+    uniqueBadgeId: 'BDG-T7-8890-KN',
+    icon: 'Search',
+    issuedDate: new Date().toISOString(),
+    verificationUrl: getVerificationUrl('badge', 'BDG-T7-8890-KN')
+  },
+  {
+    badgeId: 'badge-t8',
+    learnerId: 'usr_kapil_01',
+    learnerName: 'Kapil Narula',
+    badgeName: 'Dictionary Specialist',
+    description: 'Mastered hash map lookups, frequency hashing, and anagram grouping in O(1).',
+    topicCode: 'T8',
+    uniqueBadgeId: 'BDG-T8-9912-KN',
+    icon: 'Database',
+    issuedDate: new Date().toISOString(),
+    verificationUrl: getVerificationUrl('badge', 'BDG-T8-9912-KN')
+  },
+  {
+    badgeId: 'badge-t9',
+    learnerId: 'usr_kapil_01',
+    learnerName: 'Kapil Narula',
+    badgeName: 'Modular Engineer',
+    description: 'Designed decoupled pure functions and single-pass leaders algorithms.',
+    topicCode: 'T9',
+    uniqueBadgeId: 'BDG-T9-3321-KN',
+    icon: 'Cpu',
+    issuedDate: new Date().toISOString(),
+    verificationUrl: getVerificationUrl('badge', 'BDG-T9-3321-KN')
+  },
+  {
+    badgeId: 'badge-t10',
+    learnerId: 'usr_kapil_01',
+    learnerName: 'Kapil Narula',
+    badgeName: 'Recursion Master',
+    description: 'Unlocked recursive depth, call stack tracing, and mathematical induction.',
+    topicCode: 'T10',
+    uniqueBadgeId: 'BDG-T10-1123-KN',
+    icon: 'Award',
+    issuedDate: new Date().toISOString(),
+    verificationUrl: getVerificationUrl('badge', 'BDG-T10-1123-KN')
+  }
+];
 
 export interface ClientDB {
   adminConfig: {
@@ -61,21 +203,8 @@ function getInitialDB(): ClientDB {
     problems: INITIAL_PROBLEMS,
     submissions: [],
     badges: INITIAL_BADGES,
-    earnedBadges: [
-      {
-        badgeId: 'badge-t1',
-        learnerId: 'usr_kapil_01',
-        learnerName: 'Kapil Narula',
-        badgeName: 'Pattern Architect',
-        description: 'Mastered 2D coordinate patterns, pyramids, and geometric ASCII formatting.',
-        topicCode: 'T1',
-        uniqueBadgeId: 'UB-KAPIL-T1',
-        icon: 'Sparkles',
-        issuedDate: new Date().toISOString(),
-        verificationUrl: 'https://sarlayash.github.io/Python-Programming-With-DSA/#/verify/badge/badge-t1'
-      }
-    ],
-    certificates: [],
+    earnedBadges: [...INITIAL_EARNED_BADGES],
+    certificates: [MASTER_CERTIFICATE],
     notifications: [
       {
         id: 'notif-welcome',
@@ -99,20 +228,48 @@ function getInitialDB(): ClientDB {
 }
 
 export function loadClientDB(): ClientDB {
+  let db: ClientDB | null = null;
   try {
     const raw = localStorage.getItem(STORE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && parsed.curriculum && parsed.problems) {
-        return parsed;
+        db = parsed;
       }
     }
   } catch (e) {
     console.warn('Failed to load client DB from localStorage, resetting to default', e);
   }
-  const defaultDB = getInitialDB();
-  saveClientDB(defaultDB);
-  return defaultDB;
+
+  if (!db) {
+    db = getInitialDB();
+  }
+
+  // Self-healing integrity: ensure Master Certificate is always in client registry
+  if (!db.certificates || db.certificates.length === 0) {
+    db.certificates = [MASTER_CERTIFICATE];
+  } else if (!db.certificates.some(c => c.certificateId === MASTER_CERTIFICATE.certificateId)) {
+    db.certificates.unshift(MASTER_CERTIFICATE);
+  }
+
+  // Guarantee badges array is populated with all 10 topics
+  if (!db.badges || db.badges.length < INITIAL_BADGES.length) {
+    db.badges = INITIAL_BADGES;
+  }
+
+  // Guarantee all 10 topic badges exist for verification
+  if (!db.earnedBadges || db.earnedBadges.length === 0) {
+    db.earnedBadges = [...INITIAL_EARNED_BADGES];
+  } else {
+    for (const b of INITIAL_EARNED_BADGES) {
+      if (!db.earnedBadges.some(eb => eb.badgeId === b.badgeId || eb.topicCode === b.topicCode)) {
+        db.earnedBadges.push(b);
+      }
+    }
+  }
+
+  saveClientDB(db);
+  return db;
 }
 
 export function saveClientDB(db: ClientDB) {
@@ -384,6 +541,7 @@ export function clientSubmitCode(learnerId: string, problemId: string, code: str
 
       const badgeTemplate = db.badges.find(b => b.topicCode === problem.topicCode);
       if (badgeTemplate && !db.earnedBadges.some(eb => eb.learnerId === learner.id && eb.badgeId === badgeTemplate.id)) {
+        const uniqueBadgeId = `BDG-${badgeTemplate.topicCode}-${Math.floor(1000 + Math.random() * 9000)}-KN`;
         newlyEarnedBadge = {
           badgeId: badgeTemplate.id,
           learnerId: learner.id,
@@ -391,27 +549,28 @@ export function clientSubmitCode(learnerId: string, problemId: string, code: str
           badgeName: badgeTemplate.name,
           description: badgeTemplate.description,
           topicCode: badgeTemplate.topicCode,
-          uniqueBadgeId: 'UB-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+          uniqueBadgeId,
           icon: badgeTemplate.icon,
           issuedDate: new Date().toISOString(),
-          verificationUrl: `https://sarlayash.github.io/Python-Programming-With-DSA/#/verify/badge/${badgeTemplate.id}`
+          verificationUrl: getVerificationUrl('badge', uniqueBadgeId)
         };
         db.earnedBadges.push(newlyEarnedBadge);
       }
     }
 
     if (learner.completedDays.length >= 10 && !db.certificates.some(c => c.learnerId === learner.id)) {
+      const certificateId = `CERT-KAPIL-ENTERPRISE-${Math.floor(1000 + Math.random() * 9000)}`;
       newlyEarnedCertificate = {
-        certificateId: 'CERT-DSA-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+        certificateId,
         learnerId: learner.id,
         learnerName: learner.name,
         learnerEmail: learner.email,
         courseTitle: 'Python Programming With DSA',
         subtitle: 'Powered By Kapil',
-        issuedDate: new Date().toISOString(),
+        issuedDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
         status: 'issued',
-        grade: 'Distinction',
-        verificationUrl: `https://sarlayash.github.io/Python-Programming-With-DSA/#/verify/cert/complete`,
+        grade: 'Executive Honors (Enterprise Distinction)',
+        verificationUrl: getVerificationUrl('cert', certificateId),
         completionSummary: {
           totalSolved: learner.solvedProblems.length,
           totalAttempted: learner.attemptedProblems.length,

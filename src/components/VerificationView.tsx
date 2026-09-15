@@ -59,22 +59,49 @@ export const VerificationView: React.FC<VerificationViewProps> = ({
 
     const loadVerification = async () => {
       try {
+        let loadedCert: Certificate | null = null;
+        let loadedBadge: EarnedBadge | null = null;
+
         if (activeType === 'cert') {
-          const cert = await api.verifyCertificate(activeId);
-          if (isMounted) {
-            setCertData(cert);
-            setBadgeData(null);
+          try {
+            loadedCert = await api.verifyCertificate(activeId);
+          } catch (certErr) {
+            // Auto-heal: see if this ID was actually a badge
+            try {
+              loadedBadge = await api.verifyBadge(activeId);
+              if (isMounted) setActiveType('badge');
+            } catch {
+              throw certErr;
+            }
           }
         } else {
-          const badge = await api.verifyBadge(activeId);
-          if (isMounted) {
-            setBadgeData(badge);
+          try {
+            loadedBadge = await api.verifyBadge(activeId);
+          } catch (badgeErr) {
+            // Auto-heal: see if this ID was actually a certificate
+            try {
+              loadedCert = await api.verifyCertificate(activeId);
+              if (isMounted) setActiveType('cert');
+            } catch {
+              throw badgeErr;
+            }
+          }
+        }
+
+        if (isMounted) {
+          if (loadedCert) {
+            setCertData(loadedCert);
+            setBadgeData(null);
+          } else if (loadedBadge) {
+            setBadgeData(loadedBadge);
             setCertData(null);
           }
         }
 
         // Generate high-contrast QR code for this verification URL
-        const directUrl = getVerificationUrl(activeType, activeId);
+        const verifiedType = loadedCert ? 'cert' : 'badge';
+        const verifiedId = loadedCert ? loadedCert.certificateId : (loadedBadge?.uniqueBadgeId || activeId);
+        const directUrl = getVerificationUrl(verifiedType, verifiedId);
         const qr = await generateHighContrastQR(directUrl, 260);
         if (isMounted) {
           setQrUrl(qr);
