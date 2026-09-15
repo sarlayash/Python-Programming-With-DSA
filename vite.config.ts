@@ -1,12 +1,10 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
 
-  // GitHub Pages project-site base path
-  // Local development uses "/"
-  // GitHub Actions uses "/Python-Programming-With-DSA/"
   base: process.env.GITHUB_ACTIONS
     ? "/Python-Programming-With-DSA/"
     : "/",
