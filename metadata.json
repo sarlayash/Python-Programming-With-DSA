@@ -2,5 +2,7 @@
   "name": "Python Programming With DSA | Powered By Kapil",
   "description": "Enterprise learning management and coding assessment portal with real Python IDE, curriculum T1-T10, daily badges, and verifiable certificates.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
