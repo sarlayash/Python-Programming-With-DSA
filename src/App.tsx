@@ -7,7 +7,7 @@ import { CodingLab } from './components/CodingLab';
 import { BadgesView } from './components/BadgesView';
 import { CertificateView } from './components/CertificateView';
 import { AdminDashboard } from './components/AdminDashboard';
-import { api, setStoredToken, getStoredToken } from './lib/api';
+import { api, setStoredToken, getStoredToken, clearStoredToken } from './lib/api';
 import { DayCurriculum, Problem, Badge, EarnedBadge, Certificate, LearnerProfile, AppNotification } from './types';
 import { Award, CheckCircle, Sparkles } from 'lucide-react';
 
@@ -55,6 +55,8 @@ export default function App() {
 
         // Check if token exists or restore demo session
         const existingToken = getStoredToken();
+        const hasExplicitlyLoggedOut = localStorage.getItem('kapil_logged_out') === 'true';
+
         if (existingToken) {
           try {
             const authRes = await api.getCurrentUser();
@@ -72,12 +74,15 @@ export default function App() {
                 setCertificate(cData);
                 setNotifications(nData);
               }
+            } else {
+              clearStoredToken();
             }
           } catch (e) {
             console.warn('Session resume note:', e);
+            clearStoredToken();
           }
-        } else {
-          // Initialize automatic demo learner session for instant seamless preview
+        } else if (!hasExplicitlyLoggedOut) {
+          // Initialize automatic learner session for instant seamless preview
           try {
             const demoRes = await api.googleLogin({
               email: 'kapilnarula27july@gmail.com',
@@ -113,6 +118,7 @@ export default function App() {
 
   // Handler when user logs in via AuthModal
   const handleAuthSuccess = async (user: any, role: 'learner' | 'admin') => {
+    localStorage.removeItem('kapil_logged_out');
     setCurrentUser(user);
     setUserRole(role);
     if (role === 'learner') {
@@ -134,7 +140,11 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    await api.logout();
+    try {
+      await api.logout();
+    } catch {}
+    clearStoredToken();
+    localStorage.setItem('kapil_logged_out', 'true');
     setCurrentUser(null);
     setUserRole(null);
     setEarnedBadges([]);
