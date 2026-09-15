@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Award, CheckCircle, Download, ExternalLink, QrCode, Sparkles, Shield, Lock } from 'lucide-react';
-import QRCode from 'qrcode';
 import { jsPDF } from 'jspdf';
 import { Badge, EarnedBadge, LearnerProfile } from '../types';
+import { getVerificationUrl, generateHighContrastQR } from '../lib/verification';
 
 interface BadgesViewProps {
   badges: Badge[];
@@ -25,8 +25,8 @@ export const BadgesView: React.FC<BadgesViewProps> = ({
 
   useEffect(() => {
     if (selectedBadge) {
-      const verifyUrl = `${window.location.origin}/verify/badge/${selectedBadge.uniqueBadgeId}`;
-      QRCode.toDataURL(verifyUrl, { width: 140, margin: 1 })
+      const verifyUrl = getVerificationUrl('badge', selectedBadge.uniqueBadgeId || selectedBadge.badgeId);
+      generateHighContrastQR(verifyUrl, 260)
         .then(setQrDataUrl)
         .catch(console.error);
     }
@@ -87,15 +87,20 @@ export const BadgesView: React.FC<BadgesViewProps> = ({
     ctx.fillText(`ID: ${selectedBadge.uniqueBadgeId}`, 300, 350);
     ctx.fillText(`Issued: ${new Date(selectedBadge.issuedDate).toLocaleDateString()}`, 300, 375);
 
-    // Draw QR Code
+    // Draw QR Code with quiet zone
     if (qrDataUrl) {
       const qrImg = new Image();
       qrImg.src = qrDataUrl;
       qrImg.onload = () => {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(230, 400, 140, 140);
+        ctx.strokeStyle = '#d4af37';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(230, 400, 140, 140);
         ctx.drawImage(qrImg, 240, 410, 120, 120);
         ctx.fillStyle = '#94a3b8';
-        ctx.font = '11px sans-serif';
-        ctx.fillText('Scan to verify authenticity', 300, 550);
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText('Scan to verify authenticity', 300, 560);
 
         const link = document.createElement('a');
         link.download = `${selectedBadge.badgeName.replace(/\s+/g, '_')}_Badge.png`;
@@ -152,6 +157,11 @@ export const BadgesView: React.FC<BadgesViewProps> = ({
     doc.text(`Issued: ${new Date(selectedBadge.issuedDate).toLocaleDateString()}`, 75, 92, { align: 'center' });
 
     if (qrDataUrl) {
+      doc.setFillColor(255, 255, 255);
+      doc.rect(55, 98, 40, 40, 'F');
+      doc.setDrawColor(212, 175, 55);
+      doc.setLineWidth(0.5);
+      doc.rect(55, 98, 40, 40);
       doc.addImage(qrDataUrl, 'PNG', 57, 100, 36, 36);
     }
 
@@ -282,13 +292,26 @@ export const BadgesView: React.FC<BadgesViewProps> = ({
               </div>
 
               {/* QR Verification */}
-              <div className="bg-white p-3 rounded-xl flex flex-col items-center justify-center gap-1 text-slate-900">
+              <div className="bg-white p-3 rounded-xl flex flex-col items-center justify-center gap-1.5 text-slate-900">
                 {qrDataUrl && (
-                  <img src={qrDataUrl} alt="QR Verification" className="w-24 h-24 object-contain" />
+                  <a
+                    href={getVerificationUrl('badge', selectedBadge.uniqueBadgeId || selectedBadge.badgeId)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block p-1 hover:ring-2 hover:ring-amber-500 rounded-lg transition-all"
+                    title="Scan with phone or click to verify"
+                  >
+                    <img src={qrDataUrl} alt="QR Verification" className="w-24 h-24 object-contain" />
+                  </a>
                 )}
-                <span className="text-[10px] font-mono text-slate-500 font-semibold">
-                  Scan to Verify Authentic Credential
-                </span>
+                <a
+                  href={getVerificationUrl('badge', selectedBadge.uniqueBadgeId || selectedBadge.badgeId)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] font-mono text-amber-700 hover:text-amber-900 font-bold underline"
+                >
+                  Scan or Click to Verify
+                </a>
               </div>
 
               {/* Download buttons */}

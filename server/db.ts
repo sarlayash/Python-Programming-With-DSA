@@ -272,7 +272,8 @@ class Database {
   }
 
   public getCertificateById(certId: string): Certificate | undefined {
-    return this.data.certificates.find(c => c.certificateId === certId);
+    const clean = (certId || '').trim().toLowerCase();
+    return this.data.certificates.find(c => (c.certificateId || '').trim().toLowerCase() === clean);
   }
 
   public getCertificateForLearner(learnerId: string): Certificate | undefined {

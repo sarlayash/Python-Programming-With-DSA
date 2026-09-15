@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Download, Share2, CheckCircle2, ShieldCheck, Printer, ExternalLink, Award } from 'lucide-react';
-import QRCode from 'qrcode';
 import { jsPDF } from 'jspdf';
 import { Certificate, LearnerProfile } from '../types';
+import { getVerificationUrl, generateHighContrastQR } from '../lib/verification';
 
 interface CertificateViewProps {
   certificate: Certificate | null;
@@ -28,7 +28,7 @@ export const CertificateView: React.FC<CertificateViewProps> = ({
     subtitle: 'Powered By Kapil',
     issuedDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
     status: 'issued',
-    verificationUrl: `/verify/cert/CERT-KAPIL-ENTERPRISE-8910`,
+    verificationUrl: getVerificationUrl('cert', 'CERT-KAPIL-ENTERPRISE-8910'),
     grade: 'Executive Honors (Enterprise Distinction)',
     completionSummary: {
       totalSolved: learner?.solvedProblems.length || 8,
@@ -38,8 +38,8 @@ export const CertificateView: React.FC<CertificateViewProps> = ({
   };
 
   useEffect(() => {
-    const fullVerifyUrl = `${window.location.origin}/verify/cert/${displayCert.certificateId}`;
-    QRCode.toDataURL(fullVerifyUrl, { width: 140, margin: 1 })
+    const fullVerifyUrl = getVerificationUrl('cert', displayCert.certificateId);
+    generateHighContrastQR(fullVerifyUrl, 260)
       .then(setQrCodeUrl)
       .catch(console.error);
   }, [displayCert.certificateId]);
@@ -142,12 +142,14 @@ export const CertificateView: React.FC<CertificateViewProps> = ({
     doc.setTextColor(100, 116, 139);
     doc.text(`ID: ${displayCert.certificateId}`, 225, 168, { align: 'center' });
 
-    // Embed QR code
+    // Embed QR code with high-contrast quiet zone
     if (qrCodeUrl) {
+      doc.setFillColor(255, 255, 255);
+      doc.rect(131.5, 140, 34, 34, 'F');
       doc.addImage(qrCodeUrl, 'PNG', 133.5, 142, 30, 30);
       doc.setFontSize(7.5);
-      doc.setTextColor(148, 163, 184);
-      doc.text('Verifiable Hash', 148.5, 176, { align: 'center' });
+      doc.setTextColor(100, 116, 139);
+      doc.text('Scan to Verify', 148.5, 177, { align: 'center' });
     }
 
     doc.save(`Certificate_${displayCert.certificateId}.pdf`);
@@ -262,15 +264,20 @@ export const CertificateView: React.FC<CertificateViewProps> = ({
     ctx.fillStyle = '#64748b';
     ctx.fillText(`ID: ${displayCert.certificateId}`, 900, 700);
 
-    // Draw QR Code
+    // Draw QR Code with quiet zone for 100% camera readability
     if (qrCodeUrl) {
       const qrImg = new Image();
       qrImg.src = qrCodeUrl;
       qrImg.onload = () => {
-        ctx.drawImage(qrImg, 540, 595, 120, 120);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(530, 580, 140, 140);
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(530, 580, 140, 140);
+        ctx.drawImage(qrImg, 540, 590, 120, 120);
         ctx.fillStyle = '#64748b';
-        ctx.font = '11px sans-serif';
-        ctx.fillText('Scan to Verify Authenticity', 600, 735);
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText('Scan to Verify Authenticity', 600, 736);
 
         const a = document.createElement('a');
         a.download = `Certificate_${displayCert.certificateId}.png`;
@@ -398,11 +405,26 @@ export const CertificateView: React.FC<CertificateViewProps> = ({
             {/* QR Code */}
             <div className="flex flex-col items-center justify-center">
               {qrCodeUrl ? (
-                <img src={qrCodeUrl} alt="QR Verification" className="w-20 h-20 bg-white p-1 border border-slate-300 shadow-sm" />
+                <a
+                  href={getVerificationUrl('cert', displayCert.certificateId)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group block p-1 bg-white border border-slate-300 rounded-lg shadow-sm hover:border-amber-500 transition-colors"
+                  title="Scan with phone or click to verify"
+                >
+                  <img src={qrCodeUrl} alt="QR Verification" className="w-20 h-20 object-contain" />
+                </a>
               ) : (
-                <div className="w-20 h-20 bg-slate-100 border border-slate-300"></div>
+                <div className="w-20 h-20 bg-slate-100 border border-slate-300 rounded-lg"></div>
               )}
-              <span className="text-[9px] font-mono text-slate-500 mt-1">Scan to Verify</span>
+              <a
+                href={getVerificationUrl('cert', displayCert.certificateId)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[9px] font-mono font-bold text-amber-700 hover:text-amber-900 underline mt-1"
+              >
+                Scan or Click to Verify
+              </a>
             </div>
 
             {/* Date & ID */}

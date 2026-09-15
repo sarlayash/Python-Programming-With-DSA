@@ -11,7 +11,8 @@ import {
   User,
   CheckCircle,
   LayoutDashboard,
-  ExternalLink
+  ExternalLink,
+  QrCode
 } from 'lucide-react';
 import { LearnerProfile, AppNotification } from '../types';
 
@@ -113,6 +114,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <FileCheck className="w-3.5 h-3.5" />
               Final Certificate
+            </button>
+            <button
+              onClick={() => onSelectTab('verify')}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                currentTab === 'verify'
+                  ? 'bg-slate-800 text-amber-400'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+              }`}
+              title="Official QR Verification"
+            >
+              <QrCode className="w-3.5 h-3.5 text-amber-400" />
+              Verify QR
             </button>
 
             {userRole === 'admin' && (
@@ -271,6 +284,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             className={`px-2.5 py-1 rounded whitespace-nowrap ${currentTab === 'certificate' ? 'text-amber-400 font-bold bg-slate-800' : 'text-slate-300'}`}
           >
             Certificate
+          </button>
+          <button
+            onClick={() => onSelectTab('verify')}
+            className={`px-2.5 py-1 rounded whitespace-nowrap flex items-center gap-1 ${currentTab === 'verify' ? 'text-amber-400 font-bold bg-slate-800' : 'text-slate-300'}`}
+          >
+            <QrCode className="w-3 h-3 text-amber-400" />
+            Verify QR
           </button>
           {userRole === 'admin' && (
             <button

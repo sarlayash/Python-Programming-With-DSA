@@ -7,8 +7,10 @@ import { CodingLab } from './components/CodingLab';
 import { BadgesView } from './components/BadgesView';
 import { CertificateView } from './components/CertificateView';
 import { AdminDashboard } from './components/AdminDashboard';
+import { VerificationView } from './components/VerificationView';
 import { api, setStoredToken, getStoredToken, clearStoredToken } from './lib/api';
 import { logoutFromFirebase, checkFirebaseRedirectResult } from './lib/firebase';
+import { parseVerificationTarget, ParsedVerificationTarget } from './lib/verification';
 import { DayCurriculum, Problem, Badge, EarnedBadge, Certificate, LearnerProfile, AppNotification } from './types';
 import { Award, CheckCircle, Sparkles } from 'lucide-react';
 
@@ -38,6 +40,30 @@ export default function App() {
   } | null>(null);
 
   const [isLoadingApp, setIsLoadingApp] = useState(true);
+
+  // Verification route target (hash, path, or query based)
+  const [verifyTarget, setVerifyTarget] = useState<ParsedVerificationTarget | null>(null);
+
+  // Listen to URL hash/query/path changes for instant verification routing
+  useEffect(() => {
+    const handleUrlRoute = () => {
+      const fullUrl = window.location.href;
+      const parsed = parseVerificationTarget(fullUrl);
+      if (parsed) {
+        setVerifyTarget(parsed);
+      } else {
+        setVerifyTarget(null);
+      }
+    };
+
+    handleUrlRoute();
+    window.addEventListener('hashchange', handleUrlRoute);
+    window.addEventListener('popstate', handleUrlRoute);
+    return () => {
+      window.removeEventListener('hashchange', handleUrlRoute);
+      window.removeEventListener('popstate', handleUrlRoute);
+    };
+  }, []);
 
   // Initial load
   useEffect(() => {
@@ -237,6 +263,28 @@ export default function App() {
             <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
             <p className="text-xs font-semibold text-slate-500 font-mono">Initializing Enterprise Python Sandbox & Curriculum...</p>
           </div>
+        ) : verifyTarget ? (
+          <VerificationView
+            type={verifyTarget.type}
+            id={verifyTarget.id}
+            onBackToPortal={() => {
+              setVerifyTarget(null);
+              window.location.hash = '';
+              setCurrentTab('dashboard');
+            }}
+            onNavigateToTab={(tab) => {
+              setVerifyTarget(null);
+              window.location.hash = '';
+              setCurrentTab(tab);
+            }}
+          />
+        ) : currentTab === 'verify' ? (
+          <VerificationView
+            type="cert"
+            id={certificate?.certificateId || 'CERT-KAPIL-ENTERPRISE-8910'}
+            onBackToPortal={() => setCurrentTab('dashboard')}
+            onNavigateToTab={(tab) => setCurrentTab(tab)}
+          />
         ) : (
           <>
             {currentTab === 'dashboard' && (
