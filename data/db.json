@@ -66,6 +66,24 @@
       "streak": 1,
       "accountStatus": "active",
       "revealedProblems": []
+    },
+    "usr_la6rznw": {
+      "id": "usr_la6rznw",
+      "name": "Test User",
+      "email": "testuser@gmail.com",
+      "googleId": "gid_wo0m53g92qs",
+      "photo": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80",
+      "registrationDate": "2026-09-15T15:42:53.828Z",
+      "lastLogin": "2026-09-15T15:42:53.828Z",
+      "loginCount": 1,
+      "lastActive": "2026-09-15T15:42:53.828Z",
+      "currentDay": "T1",
+      "completedDays": [],
+      "solvedProblems": [],
+      "attemptedProblems": [],
+      "streak": 1,
+      "accountStatus": "active",
+      "revealedProblems": []
     }
   },
   "curriculum": [
@@ -1655,6 +1673,14 @@
   ],
   "certificates": [],
   "notifications": [
+    {
+      "id": "notif-1789486973829",
+      "title": "New Learner Registered",
+      "message": "Test User (testuser@gmail.com) joined via Google Authentication.",
+      "type": "system",
+      "read": false,
+      "createdAt": "2026-09-15T15:42:53.828Z"
+    },
     {
       "id": "notif-1789486448401",
       "title": "New Learner Registered",

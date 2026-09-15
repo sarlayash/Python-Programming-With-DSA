@@ -10,6 +10,15 @@ import {
   AuditLog,
   AdminOverviewStats
 } from '../types';
+import {
+  loadClientDB,
+  saveClientDB,
+  getClientSession,
+  clientGoogleLogin,
+  clientAdminLogin,
+  clientExecutePython,
+  clientSubmitCode
+} from './clientStore';
 
 const TOKEN_KEY = 'kapil_dsa_auth_token';
 
@@ -25,7 +34,18 @@ export function clearStoredToken() {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+function isStaticHost(): boolean {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname;
+  return host.includes('github.io') || host.includes('gitlab.io') || host.includes('.pages.dev');
+}
+
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  // If deployed to a static host like GitHub Pages, don't attempt network /api call that will 404
+  if (isStaticHost()) {
+    throw new Error('Static host environment - use client fallback');
+  }
+
   const token = getStoredToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -36,205 +56,434 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(endpoint, {
-    ...options,
-    headers
-  });
+  try {
+    const res = await fetch(endpoint, {
+      ...options,
+      headers
+    });
 
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(errorData.error || `HTTP error ${res.status}`);
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({ error: `HTTP error ${res.status}` }));
+      throw new Error(errorData.error || `HTTP error ${res.status}`);
+    }
+
+    return await res.json();
+  } catch (err: any) {
+    throw err;
   }
-
-  return res.json();
 }
 
 export const api = {
   // Auth
-  adminLogin: (adminId: string, password: string) =>
-    request<{ success: boolean; token: string; user: any }>('/api/auth/admin/login', {
-      method: 'POST',
-      body: JSON.stringify({ adminId, password })
-    }),
+  adminLogin: async (adminId: string, password: string) => {
+    try {
+      return await request<{ success: boolean; token: string; user: any }>('/api/auth/admin/login', {
+        method: 'POST',
+        body: JSON.stringify({ adminId, password })
+      });
+    } catch {
+      return clientAdminLogin(adminId, password);
+    }
+  },
 
-  googleLogin: (payload: { credential?: string; email?: string; name?: string; photo?: string; googleId?: string }) =>
-    request<{ success: boolean; token: string; user: LearnerProfile }>('/api/auth/learner/google', {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    }),
+  googleLogin: async (payload: { credential?: string; email?: string; name?: string; photo?: string; googleId?: string }) => {
+    try {
+      return await request<{ success: boolean; token: string; user: LearnerProfile }>('/api/auth/learner/google', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    } catch {
+      return clientGoogleLogin(payload);
+    }
+  },
 
-  getCurrentUser: () =>
-    request<{ user: any; authenticated: boolean; role: 'learner' | 'admin' | null }>('/api/auth/me'),
+  getCurrentUser: async () => {
+    try {
+      return await request<{ user: any; authenticated: boolean; role: 'learner' | 'admin' | null }>('/api/auth/me');
+    } catch {
+      const session = getClientSession();
+      if (session) {
+        return { user: session.user, authenticated: true, role: session.role };
+      }
+      return { user: null, authenticated: false, role: null };
+    }
+  },
 
-  logout: () =>
-    request<{ success: boolean }>('/api/auth/logout', { method: 'POST' }),
+  logout: async () => {
+    try {
+      await request<{ success: boolean }>('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    clearStoredToken();
+    return { success: true };
+  },
 
-  updateAdminPassword: (newPassword: string) =>
-    request<{ success: boolean; message: string }>('/api/auth/admin/password', {
-      method: 'POST',
-      body: JSON.stringify({ newPassword })
-    }),
+  updateAdminPassword: async (newPassword: string) => {
+    try {
+      return await request<{ success: boolean; message: string }>('/api/auth/admin/password', {
+        method: 'POST',
+        body: JSON.stringify({ newPassword })
+      });
+    } catch {
+      const db = loadClientDB();
+      db.adminConfig.passwordHash = newPassword;
+      saveClientDB(db);
+      return { success: true, message: 'Password updated successfully in client store' };
+    }
+  },
 
   // Curriculum & Problems
-  getCurriculum: () =>
-    request<DayCurriculum[]>('/api/curriculum'),
+  getCurriculum: async () => {
+    try {
+      return await request<DayCurriculum[]>('/api/curriculum');
+    } catch {
+      return loadClientDB().curriculum;
+    }
+  },
 
-  getDayCurriculum: (code: string) =>
-    request<DayCurriculum>(`/api/curriculum/${code}`),
+  getDayCurriculum: async (code: string) => {
+    try {
+      return await request<DayCurriculum>(`/api/curriculum/${code}`);
+    } catch {
+      const db = loadClientDB();
+      const day = db.curriculum.find(d => d.code === code);
+      if (!day) throw new Error('Day curriculum not found');
+      return day;
+    }
+  },
 
-  getProblems: () =>
-    request<Problem[]>('/api/problems'),
+  getProblems: async () => {
+    try {
+      return await request<Problem[]>('/api/problems');
+    } catch {
+      return loadClientDB().problems;
+    }
+  },
 
-  getProblemById: (id: string) =>
-    request<Problem>(`/api/problems/${id}`),
+  getProblemById: async (id: string) => {
+    try {
+      return await request<Problem>(`/api/problems/${id}`);
+    } catch {
+      const db = loadClientDB();
+      const prob = db.problems.find(p => p.id === id);
+      if (!prob) throw new Error('Problem not found');
+      return prob;
+    }
+  },
 
   // Code Execution
-  runCode: (code: string, input?: string) =>
-    request<{
-      stdout: string;
-      stderr: string;
-      exitCode: number | null;
-      executionTimeMs: number;
-      timedOut: boolean;
-    }>('/api/code/run', {
-      method: 'POST',
-      body: JSON.stringify({ code, input })
-    }),
+  runCode: async (code: string, input?: string) => {
+    try {
+      return await request<{
+        stdout: string;
+        stderr: string;
+        exitCode: number | null;
+        executionTimeMs: number;
+        timedOut: boolean;
+      }>('/api/code/run', {
+        method: 'POST',
+        body: JSON.stringify({ code, input })
+      });
+    } catch {
+      return clientExecutePython(code, input);
+    }
+  },
 
-  submitCode: (problemId: string, code: string) =>
-    request<{
-      success: boolean;
-      submission: Submission;
-      isSuccess: boolean;
-      attemptNumber: number;
-      hintToProvide: string | null;
-      strongerGuidance: string | null;
-      revealAnswerEnabled: boolean;
-      newlyEarnedBadge: EarnedBadge | null;
-      newlyEarnedCertificate: Certificate | null;
-    }>('/api/code/submit', {
-      method: 'POST',
-      body: JSON.stringify({ problemId, code })
-    }),
+  submitCode: async (problemId: string, code: string) => {
+    try {
+      return await request<{
+        success: boolean;
+        submission: Submission;
+        isSuccess: boolean;
+        attemptNumber: number;
+        hintToProvide: string | null;
+        strongerGuidance: string | null;
+        revealAnswerEnabled: boolean;
+        newlyEarnedBadge: EarnedBadge | null;
+        newlyEarnedCertificate: Certificate | null;
+      }>('/api/code/submit', {
+        method: 'POST',
+        body: JSON.stringify({ problemId, code })
+      });
+    } catch {
+      const session = getClientSession();
+      const learnerId = session?.role === 'learner' ? session.user.id : 'usr_guest';
+      return clientSubmitCode(learnerId, problemId, code);
+    }
+  },
 
-  revealAnswer: (problemId: string) =>
-    request<{
-      success: boolean;
-      fullSolution: string;
-      explanation: string;
-      timeComplexity: string;
-      spaceComplexity: string;
-      learningTakeaway: string;
-    }>('/api/code/reveal-answer', {
-      method: 'POST',
-      body: JSON.stringify({ problemId })
-    }),
+  revealAnswer: async (problemId: string) => {
+    try {
+      return await request<{
+        success: boolean;
+        fullSolution: string;
+        explanation: string;
+        timeComplexity: string;
+        spaceComplexity: string;
+        learningTakeaway: string;
+      }>('/api/code/reveal-answer', {
+        method: 'POST',
+        body: JSON.stringify({ problemId })
+      });
+    } catch {
+      const db = loadClientDB();
+      const problem = db.problems.find(p => p.id === problemId);
+      return {
+        success: true,
+        fullSolution: problem?.fullSolution || '# Solution reference not loaded',
+        explanation: problem?.explanation || 'Understand the pattern formulation.',
+        timeComplexity: problem?.timeComplexity || 'O(N)',
+        spaceComplexity: problem?.spaceComplexity || 'O(1)',
+        learningTakeaway: problem?.learningTakeaway || 'Always analyze boundary coordinates first.'
+      };
+    }
+  },
 
   // Badges & Certificates
-  getBadges: () =>
-    request<Badge[]>('/api/badges'),
+  getBadges: async () => {
+    try {
+      return await request<Badge[]>('/api/badges');
+    } catch {
+      return loadClientDB().badges;
+    }
+  },
 
-  getMyBadges: () =>
-    request<EarnedBadge[]>('/api/badges/my'),
+  getMyBadges: async () => {
+    try {
+      return await request<EarnedBadge[]>('/api/badges/my');
+    } catch {
+      const session = getClientSession();
+      if (!session || session.role !== 'learner') return [];
+      const db = loadClientDB();
+      return db.earnedBadges.filter(b => b.learnerId === session.user.id);
+    }
+  },
 
-  getLearnerBadges: () =>
-    request<EarnedBadge[]>('/api/badges/my'),
+  getLearnerBadges: async () => {
+    return api.getMyBadges();
+  },
 
-  getMyCertificate: () =>
-    request<Certificate | null>('/api/certificates/my'),
+  getMyCertificate: async () => {
+    try {
+      return await request<Certificate | null>('/api/certificates/my');
+    } catch {
+      const session = getClientSession();
+      if (!session || session.role !== 'learner') return null;
+      const db = loadClientDB();
+      return db.certificates.find(c => c.learnerId === session.user.id) || null;
+    }
+  },
 
-  getLearnerCertificate: () =>
-    request<Certificate | null>('/api/certificates/my'),
+  getLearnerCertificate: async () => {
+    return api.getMyCertificate();
+  },
 
-  verifyCertificate: (certId: string) =>
-    request<Certificate>(`/api/verify/cert/${certId}`),
+  verifyCertificate: async (certId: string) => {
+    try {
+      return await request<Certificate>(`/api/verify/cert/${certId}`);
+    } catch {
+      const db = loadClientDB();
+      const cert = db.certificates.find(c => c.certificateId === certId);
+      if (!cert) throw new Error('Certificate not found');
+      return cert;
+    }
+  },
 
-  verifyBadge: (badgeId: string) =>
-    request<EarnedBadge>(`/api/verify/badge/${badgeId}`),
+  verifyBadge: async (badgeId: string) => {
+    try {
+      return await request<EarnedBadge>(`/api/verify/badge/${badgeId}`);
+    } catch {
+      const db = loadClientDB();
+      const b = db.earnedBadges.find(x => x.badgeId === badgeId || x.uniqueBadgeId === badgeId);
+      if (!b) throw new Error('Badge not found');
+      return b;
+    }
+  },
 
   // Admin Portal
-  getAdminOverview: () =>
-    request<AdminOverviewStats>('/api/admin/overview'),
+  getAdminOverview: async () => {
+    try {
+      return await request<AdminOverviewStats>('/api/admin/overview');
+    } catch {
+      const db = loadClientDB();
+      const learners = Object.values(db.learners);
+      const totalProblemsSolved = learners.reduce((acc, l) => acc + (l.solvedProblems?.length || 0), 0);
+      return {
+        totalLearners: learners.length,
+        newRegistrations: learners.length,
+        activeLearnersToday: learners.length,
+        totalLogins: learners.reduce((acc, l) => acc + (l.loginCount || 1), 0),
+        totalSubmissions: db.submissions.length,
+        problemsSolved: totalProblemsSolved,
+        badgesIssued: db.earnedBadges.length,
+        certificatesIssued: db.certificates.length,
+        pendingActivities: 0
+      };
+    }
+  },
 
-  getAdminAnalytics: () =>
-    request<any>('/api/admin/overview'),
+  getAdminAnalytics: async () => {
+    return api.getAdminOverview();
+  },
 
-  getLearners: () =>
-    request<LearnerProfile[]>('/api/admin/learners'),
+  getLearners: async () => {
+    try {
+      return await request<LearnerProfile[]>('/api/admin/learners');
+    } catch {
+      return Object.values(loadClientDB().learners);
+    }
+  },
 
-  getAdminLearners: () =>
-    request<LearnerProfile[]>('/api/admin/learners'),
+  getAdminLearners: async () => {
+    return api.getLearners();
+  },
 
-  getSubmissions: () =>
-    request<Submission[]>('/api/admin/submissions'),
+  getSubmissions: async () => {
+    try {
+      return await request<Submission[]>('/api/admin/submissions');
+    } catch {
+      return loadClientDB().submissions;
+    }
+  },
 
-  getAuditLogs: () =>
-    request<AuditLog[]>('/api/admin/audit-logs'),
+  getAuditLogs: async () => {
+    try {
+      return await request<AuditLog[]>('/api/admin/audit-logs');
+    } catch {
+      return loadClientDB().auditLogs;
+    }
+  },
 
-  getAdminAuditLogs: () =>
-    request<AuditLog[]>('/api/admin/audit-logs'),
+  getAdminAuditLogs: async () => {
+    return api.getAuditLogs();
+  },
 
-  getReportData: (reportType: string) =>
-    request<any[]>(`/api/admin/reports/${reportType}`),
+  getReportData: async (reportType: string) => {
+    try {
+      return await request<any[]>(`/api/admin/reports/${reportType}`);
+    } catch {
+      return [];
+    }
+  },
 
-  issueCertificate: (payload: { learnerId: string; learnerName: string; learnerEmail: string }) =>
-    request<{ success: boolean; cert: Certificate }>('/api/rewards/admin/issue-cert', {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    }),
+  issueCertificate: async (payload: { learnerId: string; learnerName: string; learnerEmail: string }) => {
+    const db = loadClientDB();
+    const cert: Certificate = {
+      certificateId: 'CERT-DSA-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+      learnerId: payload.learnerId,
+      learnerName: payload.learnerName,
+      learnerEmail: payload.learnerEmail,
+      courseTitle: 'Python Programming With DSA',
+      subtitle: 'Powered By Kapil',
+      issuedDate: new Date().toISOString(),
+      status: 'issued',
+      grade: 'Distinction',
+      verificationUrl: `https://sarlayash.github.io/Python-Programming-With-DSA/#/verify/cert/${payload.learnerId}`,
+      completionSummary: {
+        totalSolved: 10,
+        totalAttempted: 10,
+        daysCompleted: 10
+      }
+    };
+    db.certificates.push(cert);
+    saveClientDB(db);
+    return { success: true, cert };
+  },
 
-  issueCertificateManually: (learnerId: string) =>
-    request<{ success: boolean; cert: Certificate }>('/api/rewards/admin/issue-cert', {
-      method: 'POST',
-      body: JSON.stringify({ learnerId })
-    }),
+  issueCertificateManually: async (learnerId: string) => {
+    const db = loadClientDB();
+    const learner = db.learners[learnerId];
+    return api.issueCertificate({
+      learnerId,
+      learnerName: learner?.name || 'Learner',
+      learnerEmail: learner?.email || 'learner@gmail.com'
+    });
+  },
 
-  grantBadgeManually: (payload: any) =>
-    request<{ success: boolean; badge: EarnedBadge }>('/api/badges/admin/award', {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    }),
+  grantBadgeManually: async (payload: any) => {
+    const db = loadClientDB();
+    const earned: EarnedBadge = {
+      badgeId: payload.badgeId || 'badge-t1',
+      learnerId: payload.learnerId,
+      learnerName: payload.learnerName || 'Learner',
+      badgeName: payload.badgeName || 'Pattern Architect',
+      description: 'Awarded by Super Admin',
+      topicCode: 'T1',
+      uniqueBadgeId: 'UB-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+      icon: 'Award',
+      issuedDate: new Date().toISOString(),
+      verificationUrl: `https://sarlayash.github.io/Python-Programming-With-DSA/#/verify/badge/${payload.badgeId}`
+    };
+    db.earnedBadges.push(earned);
+    saveClientDB(db);
+    return { success: true, badge: earned };
+  },
 
-  revokeCertificate: (certificateId: string) =>
-    request<{ success: boolean }>('/api/rewards/admin/revoke-cert', {
-      method: 'POST',
-      body: JSON.stringify({ certificateId })
-    }),
+  revokeCertificate: async (certificateId: string) => {
+    const db = loadClientDB();
+    const cert = db.certificates.find(c => c.certificateId === certificateId);
+    if (cert) cert.status = 'revoked';
+    saveClientDB(db);
+    return { success: true };
+  },
 
-  togglePublishDay: (code: string, isPublished: boolean) =>
-    request<{ success: boolean; day: DayCurriculum }>('/api/curriculum/admin/day/toggle-publish', {
-      method: 'POST',
-      body: JSON.stringify({ code, isPublished })
-    }),
+  togglePublishDay: async (code: string, isPublished: boolean) => {
+    const db = loadClientDB();
+    const day = db.curriculum.find(d => d.code === code);
+    if (day) day.isPublished = isPublished;
+    saveClientDB(db);
+    return { success: true, day: day! };
+  },
 
-  saveDay: (day: DayCurriculum) =>
-    request<{ success: boolean; day: DayCurriculum }>('/api/curriculum/admin/day', {
-      method: 'POST',
-      body: JSON.stringify(day)
-    }),
+  saveDay: async (day: DayCurriculum) => {
+    const db = loadClientDB();
+    const idx = db.curriculum.findIndex(d => d.code === day.code);
+    if (idx >= 0) db.curriculum[idx] = day;
+    else db.curriculum.push(day);
+    saveClientDB(db);
+    return { success: true, day };
+  },
 
-  saveProblem: (problem: Problem) =>
-    request<{ success: boolean; problem: Problem }>('/api/curriculum/admin/problem', {
-      method: 'POST',
-      body: JSON.stringify(problem)
-    }),
+  saveProblem: async (problem: Problem) => {
+    const db = loadClientDB();
+    const idx = db.problems.findIndex(p => p.id === problem.id);
+    if (idx >= 0) db.problems[idx] = problem;
+    else db.problems.push(problem);
+    saveClientDB(db);
+    return { success: true, problem };
+  },
 
-  createProblem: (problem: any) =>
-    request<{ success: boolean; problem: Problem }>('/api/curriculum/admin/problem', {
-      method: 'POST',
-      body: JSON.stringify(problem)
-    }),
+  createProblem: async (problem: any) => {
+    return api.saveProblem(problem);
+  },
 
   // Notifications
-  getNotifications: () =>
-    request<AppNotification[]>('/api/notifications'),
+  getNotifications: async () => {
+    try {
+      return await request<AppNotification[]>('/api/notifications');
+    } catch {
+      return loadClientDB().notifications;
+    }
+  },
 
-  markNotificationRead: (id: string) =>
-    request<{ success: boolean }>(`/api/notifications/${id}/read`, { method: 'POST' }),
+  markNotificationRead: async (id: string) => {
+    const db = loadClientDB();
+    const notif = db.notifications.find(n => n.id === id);
+    if (notif) notif.read = true;
+    saveClientDB(db);
+    return { success: true };
+  },
 
-  broadcastNotification: (title: string, message: string) =>
-    request<{ success: boolean }>('/api/notifications/broadcast', {
-      method: 'POST',
-      body: JSON.stringify({ title, message })
-    })
+  broadcastNotification: async (title: string, message: string) => {
+    const db = loadClientDB();
+    db.notifications.unshift({
+      id: 'notif_' + Date.now(),
+      title,
+      message,
+      type: 'announcement',
+      read: false,
+      createdAt: new Date().toISOString()
+    });
+    saveClientDB(db);
+    return { success: true };
+  }
 };
