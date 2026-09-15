@@ -1,0 +1,349 @@
+import * as fs from 'fs';
+import * as path from 'path';
+import {
+  LearnerProfile,
+  DayCurriculum,
+  Problem,
+  Submission,
+  Badge,
+  EarnedBadge,
+  Certificate,
+  AppNotification,
+  AuditLog,
+  AdminOverviewStats
+} from '../src/types';
+import { INITIAL_CURRICULUM, INITIAL_PROBLEMS, INITIAL_BADGES } from './curriculumData';
+
+export interface DatabaseSchema {
+  adminConfig: {
+    adminId: string;
+    passwordHash: string; // Initially ADMIN123 or hashed
+  };
+  learners: Record<string, LearnerProfile>;
+  curriculum: DayCurriculum[];
+  problems: Problem[];
+  submissions: Submission[];
+  badges: Badge[];
+  earnedBadges: EarnedBadge[];
+  certificates: Certificate[];
+  notifications: AppNotification[];
+  auditLogs: AuditLog[];
+}
+
+const DB_DIR = path.join(process.cwd(), 'data');
+const DB_FILE = path.join(DB_DIR, 'db.json');
+
+function getDefaultDB(): DatabaseSchema {
+  const initialLearner: LearnerProfile = {
+    id: 'usr_kapil_01',
+    name: 'Kapil Narula',
+    email: 'kapilnarula27july@gmail.com',
+    googleId: 'google-sub-1092837461523',
+    photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    registrationDate: new Date(Date.now() - 7 * 86400000).toISOString(),
+    lastLogin: new Date().toISOString(),
+    loginCount: 14,
+    lastActive: new Date().toISOString(),
+    currentDay: 'T1',
+    completedDays: ['T1'],
+    solvedProblems: ['p-56', 'p-58'],
+    attemptedProblems: ['p-56', 'p-57', 'p-58'],
+    streak: 4,
+    accountStatus: 'active',
+    revealedProblems: []
+  };
+
+  const initialEarnedBadge: EarnedBadge = {
+    badgeId: 'badge-t1',
+    learnerId: 'usr_kapil_01',
+    learnerName: 'Kapil Narula',
+    badgeName: 'Pattern Architect',
+    topicCode: 'T1',
+    description: 'Mastered 2D coordinate patterns, pyramids, and geometric ASCII formatting.',
+    issuedDate: new Date(Date.now() - 2 * 86400000).toISOString(),
+    uniqueBadgeId: 'BDG-T1-8934-KN',
+    verificationUrl: '/verify/badge/BDG-T1-8934-KN',
+    icon: 'Sparkles'
+  };
+
+  return {
+    adminConfig: {
+      adminId: process.env.ADMIN_ID || 'KAPILADMIN',
+      passwordHash: process.env.ADMIN_PASSWORD || 'ADMIN123'
+    },
+    learners: {
+      [initialLearner.id]: initialLearner
+    },
+    curriculum: INITIAL_CURRICULUM,
+    problems: INITIAL_PROBLEMS,
+    submissions: [
+      {
+        id: 'sub-001',
+        learnerId: 'usr_kapil_01',
+        learnerName: 'Kapil Narula',
+        learnerEmail: 'kapilnarula27july@gmail.com',
+        problemId: 'p-56',
+        problemTitle: 'Designing a Diamond Pattern of Lights',
+        topicCode: 'T1',
+        code: `def print_diamond(n):\n    for i in range(1, n+1):\n        print(' '*(n-i) + '*'*(2*i-1))\n    for i in range(n-1, 0, -1):\n        print(' '*(n-i) + '*'*(2*i-1))`,
+        status: 'passed',
+        attemptNumber: 1,
+        executionTimeMs: 42,
+        passCount: 4,
+        totalTests: 4,
+        testResults: [
+          { testIndex: 1, passed: true, input: '3', actualOutput: '  *\\n ***\\n*****\\n ***\\n  *', expectedOutput: '  *\\n ***\\n*****\\n ***\\n  *', isHidden: false }
+        ],
+        revealAnswerUsed: false,
+        submittedAt: new Date(Date.now() - 86400000).toISOString()
+      }
+    ],
+    badges: INITIAL_BADGES,
+    earnedBadges: [initialEarnedBadge],
+    certificates: [],
+    notifications: [
+      {
+        id: 'notif-1',
+        title: 'Welcome to Python Programming With DSA',
+        message: 'Your enterprise portal is configured. Start with Day 1: Pattern Programming.',
+        type: 'announcement',
+        read: false,
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'notif-2',
+        title: 'Badge Earned: Pattern Architect',
+        message: 'Congratulations! You solved your required problems for Day 1 and earned your verified credential.',
+        type: 'badge',
+        targetUserId: 'usr_kapil_01',
+        read: true,
+        createdAt: new Date(Date.now() - 2 * 86400000).toISOString()
+      }
+    ],
+    auditLogs: [
+      {
+        id: 'audit-1',
+        timestamp: new Date().toISOString(),
+        adminId: 'SYSTEM',
+        action: 'INITIALIZE_CURRICULUM',
+        details: 'Loaded 10 modules (T1-T10) with coding assessments and completion standards.'
+      }
+    ]
+  };
+}
+
+class Database {
+  private data: DatabaseSchema;
+
+  constructor() {
+    if (!fs.existsSync(DB_DIR)) {
+      fs.mkdirSync(DB_DIR, { recursive: true });
+    }
+    if (fs.existsSync(DB_FILE)) {
+      try {
+        const raw = fs.readFileSync(DB_FILE, 'utf8');
+        this.data = JSON.parse(raw);
+        // Merge in any missing seeds
+        if (!this.data.curriculum || this.data.curriculum.length === 0) {
+          this.data.curriculum = INITIAL_CURRICULUM;
+        }
+        if (!this.data.problems || this.data.problems.length === 0) {
+          this.data.problems = INITIAL_PROBLEMS;
+        }
+        if (!this.data.badges || this.data.badges.length === 0) {
+          this.data.badges = INITIAL_BADGES;
+        }
+      } catch {
+        this.data = getDefaultDB();
+        this.save();
+      }
+    } else {
+      this.data = getDefaultDB();
+      this.save();
+    }
+  }
+
+  public save() {
+    try {
+      fs.writeFileSync(DB_FILE, JSON.stringify(this.data, null, 2), 'utf8');
+    } catch (err) {
+      console.error('Failed to persist db.json:', err);
+    }
+  }
+
+  public getAdminConfig() {
+    return this.data.adminConfig;
+  }
+
+  public setAdminPassword(newPassword: string) {
+    this.data.adminConfig.passwordHash = newPassword;
+    this.save();
+  }
+
+  public getLearners(): LearnerProfile[] {
+    return Object.values(this.data.learners);
+  }
+
+  public getLearnerById(id: string): LearnerProfile | undefined {
+    return this.data.learners[id];
+  }
+
+  public getLearnerByEmail(email: string): LearnerProfile | undefined {
+    return Object.values(this.data.learners).find(l => l.email.toLowerCase() === email.toLowerCase());
+  }
+
+  public saveLearner(learner: LearnerProfile) {
+    this.data.learners[learner.id] = learner;
+    this.save();
+  }
+
+  public getCurriculum(): DayCurriculum[] {
+    return this.data.curriculum;
+  }
+
+  public getDayCurriculum(code: string): DayCurriculum | undefined {
+    return this.data.curriculum.find(c => c.code === code);
+  }
+
+  public updateDayCurriculum(day: DayCurriculum) {
+    const idx = this.data.curriculum.findIndex(c => c.code === day.code);
+    if (idx >= 0) {
+      this.data.curriculum[idx] = day;
+    } else {
+      this.data.curriculum.push(day);
+    }
+    this.save();
+  }
+
+  public getProblems(): Problem[] {
+    return this.data.problems;
+  }
+
+  public getProblemById(id: string): Problem | undefined {
+    return this.data.problems.find(p => p.id === id);
+  }
+
+  public saveProblem(problem: Problem) {
+    const idx = this.data.problems.findIndex(p => p.id === problem.id);
+    if (idx >= 0) {
+      this.data.problems[idx] = problem;
+    } else {
+      this.data.problems.push(problem);
+    }
+    this.save();
+  }
+
+  public getSubmissions(): Submission[] {
+    return this.data.submissions;
+  }
+
+  public addSubmission(sub: Submission) {
+    this.data.submissions.unshift(sub);
+    this.save();
+  }
+
+  public getBadges(): Badge[] {
+    return this.data.badges;
+  }
+
+  public getEarnedBadges(learnerId?: string): EarnedBadge[] {
+    if (learnerId) {
+      return this.data.earnedBadges.filter(b => b.learnerId === learnerId);
+    }
+    return this.data.earnedBadges;
+  }
+
+  public awardBadge(earned: EarnedBadge) {
+    this.data.earnedBadges.push(earned);
+    const badgeDef = this.data.badges.find(b => b.id === earned.badgeId);
+    if (badgeDef) {
+      badgeDef.issuedCount = (badgeDef.issuedCount || 0) + 1;
+    }
+    this.save();
+  }
+
+  public revokeBadge(uniqueBadgeId: string) {
+    this.data.earnedBadges = this.data.earnedBadges.filter(b => b.uniqueBadgeId !== uniqueBadgeId);
+    this.save();
+  }
+
+  public getCertificates(): Certificate[] {
+    return this.data.certificates;
+  }
+
+  public getCertificateById(certId: string): Certificate | undefined {
+    return this.data.certificates.find(c => c.certificateId === certId);
+  }
+
+  public getCertificateForLearner(learnerId: string): Certificate | undefined {
+    return this.data.certificates.find(c => c.learnerId === learnerId && c.status === 'issued');
+  }
+
+  public issueCertificate(cert: Certificate) {
+    const existingIdx = this.data.certificates.findIndex(c => c.certificateId === cert.certificateId);
+    if (existingIdx >= 0) {
+      this.data.certificates[existingIdx] = cert;
+    } else {
+      this.data.certificates.push(cert);
+    }
+    this.save();
+  }
+
+  public revokeCertificate(certId: string) {
+    const cert = this.data.certificates.find(c => c.certificateId === certId);
+    if (cert) {
+      cert.status = 'revoked';
+      this.save();
+    }
+  }
+
+  public getNotifications(userId?: string): AppNotification[] {
+    return this.data.notifications.filter(n => !n.targetUserId || n.targetUserId === userId || n.targetUserId === 'all');
+  }
+
+  public addNotification(notif: AppNotification) {
+    this.data.notifications.unshift(notif);
+    this.save();
+  }
+
+  public markNotificationRead(id: string) {
+    const n = this.data.notifications.find(item => item.id === id);
+    if (n) {
+      n.read = true;
+      this.save();
+    }
+  }
+
+  public getAuditLogs(): AuditLog[] {
+    return this.data.auditLogs;
+  }
+
+  public addAuditLog(log: AuditLog) {
+    this.data.auditLogs.unshift(log);
+    if (this.data.auditLogs.length > 500) {
+      this.data.auditLogs.pop();
+    }
+    this.save();
+  }
+
+  public getOverviewStats(): AdminOverviewStats {
+    const learners = Object.values(this.data.learners);
+    const totalLogins = learners.reduce((sum, l) => sum + (l.loginCount || 1), 0);
+    const solvedSet = new Set<string>();
+    learners.forEach(l => l.solvedProblems.forEach(p => solvedSet.add(p)));
+
+    return {
+      totalLearners: learners.length,
+      newRegistrations: learners.filter(l => Date.now() - new Date(l.registrationDate).getTime() < 7 * 86400000).length,
+      activeLearnersToday: learners.filter(l => Date.now() - new Date(l.lastActive).getTime() < 86400000).length || 1,
+      totalLogins,
+      totalSubmissions: this.data.submissions.length,
+      problemsSolved: this.data.submissions.filter(s => s.status === 'passed').length,
+      badgesIssued: this.data.earnedBadges.length,
+      certificatesIssued: this.data.certificates.filter(c => c.status === 'issued').length,
+      pendingActivities: 2
+    };
+  }
+}
+
+export const db = new Database();
