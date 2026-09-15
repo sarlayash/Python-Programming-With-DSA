@@ -53,17 +53,61 @@ function getDefaultDB(): DatabaseSchema {
     revealedProblems: []
   };
 
-  const initialEarnedBadge: EarnedBadge = {
-    badgeId: 'badge-t1',
+  const initialEarnedBadges: EarnedBadge[] = [
+    {
+      badgeId: 'badge-t1',
+      learnerId: 'usr_kapil_01',
+      learnerName: 'Kapil Narula',
+      badgeName: 'Pattern Architect',
+      topicCode: 'T1',
+      description: 'Mastered 2D coordinate patterns, pyramids, and geometric ASCII formatting.',
+      issuedDate: new Date(Date.now() - 2 * 86400000).toISOString(),
+      uniqueBadgeId: 'BDG-T1-8934-KN',
+      verificationUrl: '/verify/badge/BDG-T1-8934-KN',
+      icon: 'Sparkles'
+    },
+    {
+      badgeId: 'badge-t2',
+      learnerId: 'usr_kapil_01',
+      learnerName: 'Kapil Narula',
+      badgeName: 'Array Vanguard',
+      topicCode: 'T2',
+      description: 'Demonstrated mastery over 1D sequences, binary search insertions, and frequency counts.',
+      issuedDate: new Date(Date.now() - 86400000).toISOString(),
+      uniqueBadgeId: 'BDG-T2-4129-KN',
+      verificationUrl: '/verify/badge/BDG-T2-4129-KN',
+      icon: 'Layers'
+    },
+    {
+      badgeId: 'badge-t3',
+      learnerId: 'usr_kapil_01',
+      learnerName: 'Kapil Narula',
+      badgeName: 'Sequence Strategist',
+      topicCode: 'T3',
+      description: 'Solved advanced two-pointer problems and calculated resilient medians.',
+      issuedDate: new Date().toISOString(),
+      uniqueBadgeId: 'BDG-T3-7741-KN',
+      verificationUrl: '/verify/badge/BDG-T3-7741-KN',
+      icon: 'Zap'
+    }
+  ];
+
+  const initialCertificate: Certificate = {
+    certificateId: 'CERT-KAPIL-ENTERPRISE-8910',
     learnerId: 'usr_kapil_01',
     learnerName: 'Kapil Narula',
-    badgeName: 'Pattern Architect',
-    topicCode: 'T1',
-    description: 'Mastered 2D coordinate patterns, pyramids, and geometric ASCII formatting.',
-    issuedDate: new Date(Date.now() - 2 * 86400000).toISOString(),
-    uniqueBadgeId: 'BDG-T1-8934-KN',
-    verificationUrl: '/verify/badge/BDG-T1-8934-KN',
-    icon: 'Sparkles'
+    learnerEmail: 'kapilnarula27july@gmail.com',
+    courseTitle: 'Python Programming With DSA',
+    subtitle: 'Powered By Kapil',
+    issuedDate: 'September 15, 2026',
+    status: 'issued',
+    verificationUrl: '/verify/cert/CERT-KAPIL-ENTERPRISE-8910',
+    grade: 'Executive Honors (Enterprise Distinction)',
+    completionSummary: {
+      totalSolved: 8,
+      totalAttempted: 10,
+      daysCompleted: 4
+    }
   };
 
   return {
@@ -99,8 +143,8 @@ function getDefaultDB(): DatabaseSchema {
       }
     ],
     badges: INITIAL_BADGES,
-    earnedBadges: [initialEarnedBadge],
-    certificates: [],
+    earnedBadges: initialEarnedBadges,
+    certificates: [initialCertificate],
     notifications: [
       {
         id: 'notif-1',
@@ -152,6 +196,14 @@ class Database {
         }
         if (!this.data.badges || this.data.badges.length === 0) {
           this.data.badges = INITIAL_BADGES;
+        }
+        if (!this.data.certificates || this.data.certificates.length === 0) {
+          const defaults = getDefaultDB();
+          this.data.certificates = defaults.certificates;
+        }
+        if (!this.data.earnedBadges || this.data.earnedBadges.length === 0) {
+          const defaults = getDefaultDB();
+          this.data.earnedBadges = defaults.earnedBadges;
         }
       } catch {
         this.data = getDefaultDB();

@@ -254,7 +254,13 @@ export const LearnerDashboard: React.FC<LearnerDashboardProps> = ({
                             Solved
                           </span>
                         ) : (
-                          <button className="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded text-xs font-semibold">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onNavigate('ide', { problemId: prob.id });
+                            }}
+                            className="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded text-xs font-semibold cursor-pointer"
+                          >
                             Solve
                           </button>
                         )}

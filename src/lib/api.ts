@@ -19,6 +19,7 @@ import {
   clientExecutePython,
   clientSubmitCode
 } from './clientStore';
+import { getVerificationUrl } from './verification';
 
 const TOKEN_KEY = 'kapil_dsa_auth_token';
 
@@ -299,6 +300,105 @@ export const api = {
     }
   },
 
+  claimCertificate: async () => {
+    try {
+      const res = await request<{ success: boolean; certificate: Certificate }>('/api/certificates/claim', {
+        method: 'POST'
+      });
+      return res.certificate;
+    } catch {
+      const session = getClientSession();
+      const db = loadClientDB();
+      const learnerId = session?.user?.id || 'usr_kapil_01';
+      const learner = db.learners[learnerId] || { name: 'Kapil Narula', email: 'kapilnarula27july@gmail.com' };
+      let existing = db.certificates.find(c => c.learnerId === learnerId);
+      if (!existing) {
+        const certId = `CERT-KAPIL-ENTERPRISE-${Math.floor(1000 + Math.random() * 9000)}`;
+        existing = {
+          certificateId: certId,
+          learnerId,
+          learnerName: learner.name,
+          learnerEmail: learner.email,
+          courseTitle: 'Python Programming With DSA',
+          subtitle: 'Powered By Kapil',
+          issuedDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+          status: 'issued',
+          verificationUrl: getVerificationUrl('cert', certId),
+          grade: 'Executive Honors (Enterprise Distinction)',
+          completionSummary: { totalSolved: 8, totalAttempted: 10, daysCompleted: 4 }
+        };
+        db.certificates.push(existing);
+        saveClientDB(db);
+      }
+      return existing;
+    }
+  },
+
+  claimBadge: async (topicCodeOrId: string) => {
+    try {
+      const res = await request<{ success: boolean; badge: EarnedBadge }>('/api/badges/claim', {
+        method: 'POST',
+        body: JSON.stringify({ topicCode: topicCodeOrId, badgeId: topicCodeOrId })
+      });
+      return res.badge;
+    } catch {
+      const session = getClientSession();
+      const db = loadClientDB();
+      const learnerId = session?.user?.id || 'usr_kapil_01';
+      const learner = db.learners[learnerId] || { name: 'Kapil Narula' };
+      const badgeDef = db.badges.find(b => b.id === topicCodeOrId || b.topicCode.toUpperCase() === topicCodeOrId.toUpperCase()) || db.badges[0];
+      const uniqueBadgeId = `BDG-${badgeDef.topicCode}-${Math.floor(1000 + Math.random() * 9000)}-${learner.name.split(' ')[0].toUpperCase()}`;
+      const earned: EarnedBadge = {
+        badgeId: badgeDef.id,
+        learnerId,
+        learnerName: learner.name,
+        badgeName: badgeDef.name,
+        topicCode: badgeDef.topicCode,
+        description: badgeDef.description,
+        issuedDate: new Date().toISOString(),
+        uniqueBadgeId,
+        verificationUrl: getVerificationUrl('badge', uniqueBadgeId),
+        icon: badgeDef.icon
+      };
+      db.earnedBadges.push(earned);
+      saveClientDB(db);
+      return earned;
+    }
+  },
+
+  claimAllBadges: async () => {
+    try {
+      const res = await request<{ success: boolean; earnedBadges: EarnedBadge[] }>('/api/badges/claim-all', {
+        method: 'POST'
+      });
+      return res.earnedBadges;
+    } catch {
+      const session = getClientSession();
+      const db = loadClientDB();
+      const learnerId = session?.user?.id || 'usr_kapil_01';
+      const learner = db.learners[learnerId] || { name: 'Kapil Narula' };
+      for (const b of db.badges) {
+        if (!db.earnedBadges.some(eb => eb.badgeId === b.id && eb.learnerId === learnerId)) {
+          const uniqueBadgeId = `BDG-${b.topicCode}-${Math.floor(1000 + Math.random() * 9000)}-${learner.name.split(' ')[0].toUpperCase()}`;
+          db.earnedBadges.push({
+            badgeId: b.id,
+            learnerId,
+            learnerName: learner.name,
+            badgeName: b.name,
+            topicCode: b.topicCode,
+            description: b.description,
+            issuedDate: new Date().toISOString(),
+            uniqueBadgeId,
+            verificationUrl: getVerificationUrl('badge', uniqueBadgeId),
+            icon: b.icon
+          });
+        }
+      }
+      saveClientDB(db);
+      return db.earnedBadges.filter(eb => eb.learnerId === learnerId);
+    }
+  },
+
   // Admin Portal
   getAdminOverview: async () => {
     try {
@@ -367,8 +467,9 @@ export const api = {
 
   issueCertificate: async (payload: { learnerId: string; learnerName: string; learnerEmail: string }) => {
     const db = loadClientDB();
+    const certId = 'CERT-DSA-' + Math.random().toString(36).substring(2, 8).toUpperCase();
     const cert: Certificate = {
-      certificateId: 'CERT-DSA-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+      certificateId: certId,
       learnerId: payload.learnerId,
       learnerName: payload.learnerName,
       learnerEmail: payload.learnerEmail,
@@ -377,7 +478,7 @@ export const api = {
       issuedDate: new Date().toISOString(),
       status: 'issued',
       grade: 'Distinction',
-      verificationUrl: `https://sarlayash.github.io/Python-Programming-With-DSA/#/verify/cert/${payload.learnerId}`,
+      verificationUrl: getVerificationUrl('cert', certId),
       completionSummary: {
         totalSolved: 10,
         totalAttempted: 10,
@@ -401,6 +502,7 @@ export const api = {
 
   grantBadgeManually: async (payload: any) => {
     const db = loadClientDB();
+    const uniqueBadgeId = 'UB-' + Math.random().toString(36).substring(2, 8).toUpperCase();
     const earned: EarnedBadge = {
       badgeId: payload.badgeId || 'badge-t1',
       learnerId: payload.learnerId,
@@ -408,10 +510,10 @@ export const api = {
       badgeName: payload.badgeName || 'Pattern Architect',
       description: 'Awarded by Super Admin',
       topicCode: 'T1',
-      uniqueBadgeId: 'UB-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+      uniqueBadgeId,
       icon: 'Award',
       issuedDate: new Date().toISOString(),
-      verificationUrl: `https://sarlayash.github.io/Python-Programming-With-DSA/#/verify/badge/${payload.badgeId}`
+      verificationUrl: getVerificationUrl('badge', uniqueBadgeId)
     };
     db.earnedBadges.push(earned);
     saveClientDB(db);

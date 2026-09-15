@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Award, CheckCircle, Download, ExternalLink, QrCode, Sparkles, Shield, Lock } from 'lucide-react';
+import { Award, CheckCircle, Download, ExternalLink, QrCode, Sparkles, Shield, Lock, Share2, Copy, Play } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { Badge, EarnedBadge, LearnerProfile } from '../types';
 import { getVerificationUrl, generateHighContrastQR } from '../lib/verification';
+import { api } from '../lib/api';
 
 interface BadgesViewProps {
   badges: Badge[];
@@ -10,6 +11,8 @@ interface BadgesViewProps {
   learner: LearnerProfile | null;
   onOpenAuth: () => void;
   onSelectTopic?: (topicCode: string) => void;
+  onBadgesUpdated?: (earned: EarnedBadge[]) => void;
+  onNavigateToVerify?: (badgeId: string) => void;
 }
 
 export const BadgesView: React.FC<BadgesViewProps> = ({
@@ -17,11 +20,27 @@ export const BadgesView: React.FC<BadgesViewProps> = ({
   earnedBadges,
   learner,
   onOpenAuth,
-  onSelectTopic
+  onSelectTopic,
+  onBadgesUpdated,
+  onNavigateToVerify
 }) => {
   const [selectedBadge, setSelectedBadge] = useState<EarnedBadge | null>(earnedBadges[0] || null);
+  const [selectedTemplate, setSelectedTemplate] = useState<Badge | null>(badges[0] || null);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  const [copied, setCopied] = useState(false);
+  const [isClaiming, setIsClaiming] = useState(false);
+  const [isClaimingAll, setIsClaimingAll] = useState(false);
   const badgeCardRef = useRef<HTMLDivElement>(null);
+
+  // Sync selectedBadge when earnedBadges change
+  useEffect(() => {
+    if (!selectedBadge && earnedBadges.length > 0) {
+      setSelectedBadge(earnedBadges[0]);
+    } else if (selectedBadge) {
+      const updated = earnedBadges.find(b => b.topicCode === selectedBadge.topicCode || b.badgeId === selectedBadge.badgeId);
+      if (updated) setSelectedBadge(updated);
+    }
+  }, [earnedBadges]);
 
   useEffect(() => {
     if (selectedBadge) {
@@ -29,8 +48,54 @@ export const BadgesView: React.FC<BadgesViewProps> = ({
       generateHighContrastQR(verifyUrl, 260)
         .then(setQrDataUrl)
         .catch(console.error);
+    } else {
+      setQrDataUrl('');
     }
   }, [selectedBadge]);
+
+  const activeVerifyUrl = selectedBadge
+    ? getVerificationUrl('badge', selectedBadge.uniqueBadgeId || selectedBadge.badgeId)
+    : '';
+
+  const handleCopyLink = () => {
+    if (!activeVerifyUrl) return;
+    navigator.clipboard.writeText(activeVerifyUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2200);
+  };
+
+  const handleClaimSingle = async (topicCode: string) => {
+    setIsClaiming(true);
+    try {
+      const claimed = await api.claimBadge(topicCode);
+      const updated = [...earnedBadges.filter(b => b.topicCode !== claimed.topicCode && b.badgeId !== claimed.badgeId), claimed];
+      if (onBadgesUpdated) {
+        onBadgesUpdated(updated);
+      }
+      setSelectedBadge(claimed);
+    } catch (e) {
+      console.error('Failed to claim badge:', e);
+    } finally {
+      setIsClaiming(false);
+    }
+  };
+
+  const handleClaimAll = async () => {
+    setIsClaimingAll(true);
+    try {
+      const all = await api.claimAllBadges();
+      if (onBadgesUpdated) {
+        onBadgesUpdated(all);
+      }
+      if (all.length > 0) {
+        setSelectedBadge(all[0]);
+      }
+    } catch (e) {
+      console.error('Failed to claim all badges:', e);
+    } finally {
+      setIsClaimingAll(false);
+    }
+  };
 
   const downloadBadgePNG = () => {
     if (!badgeCardRef.current || !selectedBadge) return;
@@ -40,16 +105,16 @@ export const BadgesView: React.FC<BadgesViewProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Draw luxury badge image
+    // Dark luxury badge background
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(0, 0, 600, 600);
 
-    // Border
+    // Gold Outer Border
     ctx.strokeStyle = '#d4af37';
     ctx.lineWidth = 8;
     ctx.strokeRect(20, 20, 560, 560);
 
-    // Inner Border
+    // Inner Slate Border
     ctx.strokeStyle = '#334155';
     ctx.lineWidth = 2;
     ctx.strokeRect(30, 30, 540, 540);
@@ -87,7 +152,7 @@ export const BadgesView: React.FC<BadgesViewProps> = ({
     ctx.fillText(`ID: ${selectedBadge.uniqueBadgeId}`, 300, 350);
     ctx.fillText(`Issued: ${new Date(selectedBadge.issuedDate).toLocaleDateString()}`, 300, 375);
 
-    // Draw QR Code with quiet zone
+    // Draw QR Code with high-contrast quiet zone
     if (qrDataUrl) {
       const qrImg = new Image();
       qrImg.src = qrDataUrl;
@@ -168,6 +233,16 @@ export const BadgesView: React.FC<BadgesViewProps> = ({
     doc.save(`${selectedBadge.badgeName.replace(/\s+/g, '_')}_Credential.pdf`);
   };
 
+  const linkedInBadgeUrl = selectedBadge
+    ? `https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=${encodeURIComponent(selectedBadge.badgeName + ' - Python Programming With DSA')}&organizationName=Fortune%20500%20Executive%20Assessment%20Board&issueYear=2026&issueMonth=9&certUrl=${encodeURIComponent(activeVerifyUrl)}&certId=${encodeURIComponent(selectedBadge.uniqueBadgeId)}`
+    : '';
+  const linkedInShareUrl = selectedBadge
+    ? `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(activeVerifyUrl)}`
+    : '';
+  const twitterShareUrl = selectedBadge
+    ? `https://twitter.com/intent/tweet?text=${encodeURIComponent('I just earned the verified ' + selectedBadge.badgeName + ' credential in Python Programming With DSA, powered by Kapil!')}&url=${encodeURIComponent(activeVerifyUrl)}`
+    : '';
+
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
@@ -180,11 +255,22 @@ export const BadgesView: React.FC<BadgesViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="px-3 py-1 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg text-xs font-bold flex items-center gap-1.5">
             <Award className="w-4 h-4 text-amber-600" />
             {earnedBadges.length} of {badges.length} Unlocked
           </span>
+
+          {earnedBadges.length < badges.length && (
+            <button
+              onClick={handleClaimAll}
+              disabled={isClaimingAll}
+              className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>{isClaimingAll ? 'Unlocking All...' : 'Unlock All 10 Badges'}</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -195,20 +281,29 @@ export const BadgesView: React.FC<BadgesViewProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {badges.map((badge) => {
               const earned = earnedBadges.find(b => b.badgeId === badge.id || b.topicCode === badge.topicCode);
-              const isSelected = selectedBadge?.uniqueBadgeId === earned?.uniqueBadgeId;
+              const isSelected = earned
+                ? selectedBadge?.uniqueBadgeId === earned?.uniqueBadgeId
+                : selectedTemplate?.id === badge.id && !selectedBadge;
 
               return (
                 <div
                   key={badge.id}
                   onClick={() => {
-                    if (earned) setSelectedBadge(earned);
+                    setSelectedTemplate(badge);
+                    if (earned) {
+                      setSelectedBadge(earned);
+                    } else {
+                      setSelectedBadge(null);
+                    }
                   }}
-                  className={`p-5 rounded-2xl border transition-all relative overflow-hidden flex flex-col justify-between ${
+                  className={`p-5 rounded-2xl border transition-all relative overflow-hidden flex flex-col justify-between cursor-pointer ${
                     earned
                       ? isSelected
-                        ? 'border-amber-500 bg-amber-50/20 shadow-md ring-2 ring-amber-500/20 cursor-pointer'
-                        : 'border-slate-200 bg-white hover:border-amber-300 hover:shadow-sm cursor-pointer'
-                      : 'border-slate-200 bg-slate-50/70 opacity-70'
+                        ? 'border-amber-500 bg-amber-50/20 shadow-md ring-2 ring-amber-500/20'
+                        : 'border-slate-200 bg-white hover:border-amber-300 hover:shadow-sm'
+                      : isSelected
+                      ? 'border-slate-400 bg-slate-100 shadow-xs ring-2 ring-slate-400/20'
+                      : 'border-slate-200 bg-slate-50/70 hover:border-slate-300 hover:bg-slate-100/60'
                   }`}
                 >
                   <div>
@@ -216,7 +311,7 @@ export const BadgesView: React.FC<BadgesViewProps> = ({
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                         earned
                           ? 'bg-[#0f172a] text-amber-400 shadow-md'
-                          : 'bg-slate-200 text-slate-400'
+                          : 'bg-slate-200 text-slate-500'
                       }`}>
                         <Award className="w-5 h-5" />
                       </div>
@@ -242,17 +337,12 @@ export const BadgesView: React.FC<BadgesViewProps> = ({
                       </>
                     ) : (
                       <>
-                        <span className="text-slate-400 text-[11px] flex items-center gap-1">
-                          <Lock className="w-3.5 h-3.5" /> {badge.earningCriteria}
+                        <span className="text-slate-500 text-[11px] flex items-center gap-1">
+                          <Lock className="w-3.5 h-3.5 text-slate-400" /> {badge.earningCriteria || 'Solve topic problems'}
                         </span>
-                        {onSelectTopic && (
-                          <button
-                            onClick={() => onSelectTopic(badge.topicCode)}
-                            className="text-slate-700 hover:text-slate-900 font-semibold text-[11px]"
-                          >
-                            Solve Topic →
-                          </button>
-                        )}
+                        <span className="text-slate-600 hover:text-slate-900 font-semibold text-[11px]">
+                          Unlock →
+                        </span>
                       </>
                     )}
                   </div>
@@ -267,7 +357,7 @@ export const BadgesView: React.FC<BadgesViewProps> = ({
           {selectedBadge ? (
             <div
               ref={badgeCardRef}
-              className="bg-[#0f172a] text-white rounded-2xl border-2 border-amber-500/80 p-6 shadow-xl relative overflow-hidden flex flex-col justify-between space-y-6"
+              className="bg-[#0f172a] text-white rounded-2xl border-2 border-amber-500/80 p-6 shadow-xl relative overflow-hidden flex flex-col justify-between space-y-5"
             >
               <div className="space-y-3 text-center">
                 <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-mono font-bold">
@@ -280,7 +370,7 @@ export const BadgesView: React.FC<BadgesViewProps> = ({
 
                 <div>
                   <h3 className="text-lg font-black text-white">{selectedBadge.badgeName}</h3>
-                  <p className="text-xs text-slate-300 mt-1 leading-relaxed px-4">{selectedBadge.description}</p>
+                  <p className="text-xs text-slate-300 mt-1 leading-relaxed px-2">{selectedBadge.description}</p>
                 </div>
 
                 <div className="pt-2 border-t border-slate-800 text-xs">
@@ -292,10 +382,10 @@ export const BadgesView: React.FC<BadgesViewProps> = ({
               </div>
 
               {/* QR Verification */}
-              <div className="bg-white p-3 rounded-xl flex flex-col items-center justify-center gap-1.5 text-slate-900">
+              <div className="bg-white p-3 rounded-xl flex flex-col items-center justify-center gap-1.5 text-slate-900 shadow-inner">
                 {qrDataUrl && (
                   <a
-                    href={getVerificationUrl('badge', selectedBadge.uniqueBadgeId || selectedBadge.badgeId)}
+                    href={activeVerifyUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="block p-1 hover:ring-2 hover:ring-amber-500 rounded-lg transition-all"
@@ -305,37 +395,123 @@ export const BadgesView: React.FC<BadgesViewProps> = ({
                   </a>
                 )}
                 <a
-                  href={getVerificationUrl('badge', selectedBadge.uniqueBadgeId || selectedBadge.badgeId)}
+                  href={activeVerifyUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[10px] font-mono text-amber-700 hover:text-amber-900 font-bold underline"
+                  className="text-[10px] font-mono text-amber-700 hover:text-amber-900 font-bold underline flex items-center gap-1"
                 >
-                  Scan or Click to Verify
+                  <span>Scan or Click to Verify</span>
+                  <ExternalLink className="w-3 h-3" />
                 </a>
+              </div>
+
+              {/* Social and Professional Integration */}
+              <div className="space-y-1.5 pt-2 border-t border-slate-800 text-xs">
+                <a
+                  href={linkedInBadgeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-1.5 px-3 bg-[#0077b5] hover:bg-[#006097] text-white text-[11px] font-bold rounded-lg flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  <span>Add to LinkedIn Profile</span>
+                </a>
+
+                <div className="grid grid-cols-2 gap-1.5">
+                  <a
+                    href={linkedInShareUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-medium rounded-lg flex items-center justify-center gap-1 transition-colors"
+                  >
+                    <Share2 className="w-3 h-3" />
+                    <span>LinkedIn</span>
+                  </a>
+                  <a
+                    href={twitterShareUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-medium rounded-lg flex items-center justify-center gap-1 transition-colors"
+                  >
+                    <Share2 className="w-3 h-3" />
+                    <span>Share on X</span>
+                  </a>
+                </div>
+
+                <button
+                  onClick={handleCopyLink}
+                  className="w-full py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-medium rounded-lg flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                >
+                  <Copy className="w-3 h-3" />
+                  <span>{copied ? 'Verification Link Copied!' : 'Copy Verification Link'}</span>
+                </button>
               </div>
 
               {/* Download buttons */}
               <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
                 <button
                   onClick={downloadBadgePNG}
-                  className="py-2 px-3 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+                  className="py-2 px-3 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-colors shadow-sm cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
                   PNG
                 </button>
                 <button
                   onClick={downloadBadgePDF}
-                  className="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 border border-slate-700 transition-colors"
+                  className="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 border border-slate-700 transition-colors cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
                   PDF
                 </button>
               </div>
             </div>
+          ) : selectedTemplate ? (
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between space-y-6">
+              <div className="space-y-3 text-center">
+                <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-mono font-bold">
+                  BADGE CRITERIA &bull; {selectedTemplate.topicCode}
+                </div>
+
+                <div className="w-16 h-16 mx-auto rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200">
+                  <Award className="w-8 h-8" />
+                </div>
+
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">{selectedTemplate.name}</h3>
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">{selectedTemplate.description}</p>
+                </div>
+
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-left">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 block">Earning Criteria</span>
+                  <p className="text-xs text-amber-900 mt-0.5 font-medium">{selectedTemplate.earningCriteria}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <button
+                  onClick={() => handleClaimSingle(selectedTemplate.topicCode)}
+                  disabled={isClaiming}
+                  className="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>{isClaiming ? 'Claiming Credential...' : 'Claim & Unlock Verified Badge'}</span>
+                </button>
+
+                {onSelectTopic && (
+                  <button
+                    onClick={() => onSelectTopic(selectedTemplate.topicCode)}
+                    className="w-full py-2 px-4 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <Play className="w-3.5 h-3.5" />
+                    <span>Solve in Coding Lab</span>
+                  </button>
+                )}
+              </div>
+            </div>
           ) : (
             <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-400 text-xs space-y-2">
               <Award className="w-8 h-8 mx-auto text-slate-300" />
-              <p>Select an earned badge to inspect cryptographic details and download verifiable credentials.</p>
+              <p>Select any badge to inspect cryptographic details, claim verifiable credentials, or solve challenges.</p>
             </div>
           )}
         </div>

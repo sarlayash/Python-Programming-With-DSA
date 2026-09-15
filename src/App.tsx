@@ -332,6 +332,10 @@ export default function App() {
                   setCurriculumSelectedTopic(code);
                   setCurrentTab('curriculum');
                 }}
+                onBadgesUpdated={(updated) => setEarnedBadges(updated)}
+                onNavigateToVerify={(badgeId) => {
+                  setVerifyTarget({ type: 'badge', id: badgeId });
+                }}
               />
             )}
 
@@ -340,6 +344,10 @@ export default function App() {
                 certificate={certificate}
                 learner={userRole === 'learner' ? currentUser : null}
                 onOpenAuth={() => handleOpenAuth('learner')}
+                onCertificateUpdated={(updated) => setCertificate(updated)}
+                onNavigateToVerify={(certId) => {
+                  setVerifyTarget({ type: 'cert', id: certId });
+                }}
               />
             )}
 

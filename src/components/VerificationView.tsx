@@ -44,6 +44,7 @@ export const VerificationView: React.FC<VerificationViewProps> = ({
 
   // Manual lookup input
   const [searchQuery, setSearchQuery] = useState('');
+  const [uploadMessage, setUploadMessage] = useState<{ text: string; isError: boolean } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -125,6 +126,7 @@ export const VerificationView: React.FC<VerificationViewProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setUploadMessage(null);
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
@@ -143,11 +145,12 @@ export const VerificationView: React.FC<VerificationViewProps> = ({
             window.location.hash = `/verify/${parsed.type}/${encodeURIComponent(parsed.id)}`;
             setActiveType(parsed.type);
             setActiveId(parsed.id);
+            setUploadMessage({ text: `Successfully scanned and loaded: ${parsed.id}`, isError: false });
           } else {
-            alert('Scanned QR data: ' + code.data);
+            setUploadMessage({ text: `Scanned code: ${code.data}`, isError: false });
           }
         } else {
-          alert('No valid QR code detected in this image. Please ensure the QR code is clear.');
+          setUploadMessage({ text: 'No valid QR code detected in this image. Please ensure the QR code is clearly visible and high-contrast.', isError: true });
         }
       };
       img.src = event.target?.result as string;
@@ -358,31 +361,98 @@ export const VerificationView: React.FC<VerificationViewProps> = ({
       )}
 
       {/* Manual Search and QR Upload Footer */}
-      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-600">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 shrink-0">
-            <FileCheck className="w-4 h-4" />
+      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 flex flex-col gap-4 text-xs text-slate-600">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 shrink-0">
+              <FileCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="font-bold text-slate-800">Need to scan or verify another credential?</p>
+              <p className="text-[11px] text-slate-500">Scan via camera or upload a QR image from certificates and badges.</p>
+            </div>
           </div>
-          <div>
-            <p className="font-bold text-slate-800">Need to scan or verify another credential?</p>
-            <p className="text-[11px] text-slate-500">Scan via camera or upload a QR image from certificates and badges.</p>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleQRImageUpload}
+              accept="image/*"
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+            >
+              <Upload className="w-3.5 h-3.5 text-slate-500" />
+              <span>Upload QR Image</span>
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleQRImageUpload}
-            accept="image/*"
-            className="hidden"
-          />
+        {uploadMessage && (
+          <div className={`p-3 rounded-xl border text-xs font-semibold ${
+            uploadMessage.isError
+              ? 'bg-rose-50 border-rose-200 text-rose-800'
+              : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+          }`}>
+            {uploadMessage.text}
+          </div>
+        )}
+
+        {/* Quick Test Credential Chips */}
+        <div className="pt-3 border-t border-slate-200 flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Quick Test Credentials:</span>
           <button
-            onClick={() => fileInputRef.current?.click()}
-            className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+            onClick={() => {
+              window.location.hash = '/verify/cert/CERT-KAPIL-ENTERPRISE-8910';
+              setActiveType('cert');
+              setActiveId('CERT-KAPIL-ENTERPRISE-8910');
+            }}
+            className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[11px] font-semibold text-slate-700 transition-colors cursor-pointer"
           >
-            <Upload className="w-3.5 h-3.5 text-slate-500" />
-            <span>Upload QR Image</span>
+            Kapil Narula (Certificate)
+          </button>
+          <button
+            onClick={() => {
+              window.location.hash = '/verify/badge/BDG-T1-8910-KAPIL';
+              setActiveType('badge');
+              setActiveId('BDG-T1-8910-KAPIL');
+            }}
+            className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[11px] font-semibold text-slate-700 transition-colors cursor-pointer"
+          >
+            T1 Badge
+          </button>
+          <button
+            onClick={() => {
+              window.location.hash = '/verify/badge/BDG-T2-8910-KAPIL';
+              setActiveType('badge');
+              setActiveId('BDG-T2-8910-KAPIL');
+            }}
+            className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[11px] font-semibold text-slate-700 transition-colors cursor-pointer"
+          >
+            T2 Badge
+          </button>
+          <button
+            onClick={() => {
+              window.location.hash = '/verify/badge/BDG-T3-8910-KAPIL';
+              setActiveType('badge');
+              setActiveId('BDG-T3-8910-KAPIL');
+            }}
+            className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[11px] font-semibold text-slate-700 transition-colors cursor-pointer"
+          >
+            T3 Badge
+          </button>
+          <button
+            onClick={() => {
+              window.location.hash = '/verify/badge/BDG-T4-8910-KAPIL';
+              setActiveType('badge');
+              setActiveId('BDG-T4-8910-KAPIL');
+            }}
+            className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[11px] font-semibold text-slate-700 transition-colors cursor-pointer"
+          >
+            T4 Badge
           </button>
         </div>
       </div>

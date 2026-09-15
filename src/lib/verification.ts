@@ -13,7 +13,7 @@ export interface ParsedVerificationTarget {
  */
 export function getVerificationUrl(type: 'cert' | 'badge', id: string): string {
   if (typeof window === 'undefined') {
-    return `https://sarlayash.github.io/Python-Programming-With-DSA/#/verify/${type}/${encodeURIComponent(id)}`;
+    return `/#/verify/${type}/${encodeURIComponent(id)}`;
   }
 
   // Preserve the exact path before hash or query string, stripping trailing index.html

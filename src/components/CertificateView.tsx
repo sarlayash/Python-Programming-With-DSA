@@ -1,21 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, Share2, CheckCircle2, ShieldCheck, Printer, ExternalLink, Award } from 'lucide-react';
+import { Download, Share2, CheckCircle2, ShieldCheck, Printer, ExternalLink, Award, Copy, Sparkles } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { Certificate, LearnerProfile } from '../types';
 import { getVerificationUrl, generateHighContrastQR } from '../lib/verification';
+import { api } from '../lib/api';
 
 interface CertificateViewProps {
   certificate: Certificate | null;
   learner: LearnerProfile | null;
   onOpenAuth: () => void;
+  onCertificateUpdated?: (cert: Certificate) => void;
+  onNavigateToVerify?: (certId: string) => void;
 }
 
 export const CertificateView: React.FC<CertificateViewProps> = ({
   certificate,
   learner,
-  onOpenAuth
+  onOpenAuth,
+  onCertificateUpdated,
+  onNavigateToVerify
 }) => {
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
+  const [copied, setCopied] = useState(false);
+  const [isClaiming, setIsClaiming] = useState(false);
   const certRef = useRef<HTMLDivElement>(null);
 
   // Fallback demo certificate if eligible or previewing
@@ -31,18 +38,43 @@ export const CertificateView: React.FC<CertificateViewProps> = ({
     verificationUrl: getVerificationUrl('cert', 'CERT-KAPIL-ENTERPRISE-8910'),
     grade: 'Executive Honors (Enterprise Distinction)',
     completionSummary: {
-      totalSolved: learner?.solvedProblems.length || 8,
-      totalAttempted: learner?.attemptedProblems.length || 10,
-      daysCompleted: learner?.completedDays.length || 4
+      totalSolved: learner?.solvedProblems?.length || 8,
+      totalAttempted: learner?.attemptedProblems?.length || 10,
+      daysCompleted: learner?.completedDays?.length || 4
     }
   };
 
+  const verifyUrl = getVerificationUrl('cert', displayCert.certificateId);
+
   useEffect(() => {
-    const fullVerifyUrl = getVerificationUrl('cert', displayCert.certificateId);
-    generateHighContrastQR(fullVerifyUrl, 260)
+    generateHighContrastQR(verifyUrl, 260)
       .then(setQrCodeUrl)
       .catch(console.error);
-  }, [displayCert.certificateId]);
+  }, [verifyUrl]);
+
+  const handleCopyVerificationLink = () => {
+    navigator.clipboard.writeText(verifyUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2200);
+  };
+
+  const handleClaimCertificate = async () => {
+    setIsClaiming(true);
+    try {
+      const claimed = await api.claimCertificate();
+      if (onCertificateUpdated) {
+        onCertificateUpdated(claimed);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsClaiming(false);
+    }
+  };
+
+  const linkedInCertUrl = `https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=Python%20Programming%20With%20DSA&organizationName=Fortune%20500%20Executive%20Assessment%20Board&issueYear=2026&issueMonth=9&certUrl=${encodeURIComponent(verifyUrl)}&certId=${encodeURIComponent(displayCert.certificateId)}`;
+  const linkedInShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(verifyUrl)}`;
+  const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent('I just earned my official Executive Certificate in Python Programming With DSA, powered by Kapil!')}&url=${encodeURIComponent(verifyUrl)}`;
 
   const handlePrint = () => {
     window.print();
@@ -325,7 +357,7 @@ export const CertificateView: React.FC<CertificateViewProps> = ({
       </div>
 
       {/* Verified Status Banner */}
-      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between gap-4 text-xs text-emerald-900 no-print">
+      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs text-emerald-900 no-print">
         <div className="flex items-center gap-3">
           <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
           <div>
@@ -335,10 +367,78 @@ export const CertificateView: React.FC<CertificateViewProps> = ({
             </p>
           </div>
         </div>
-        <div className="text-right">
+        <div className="flex items-center gap-2">
           <span className="px-2.5 py-1 rounded bg-emerald-100 font-bold text-emerald-800 text-[10px]">
             {displayCert.grade}
           </span>
+          <button
+            onClick={handleClaimCertificate}
+            disabled={isClaiming}
+            className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded text-[11px] font-semibold transition-colors flex items-center gap-1 shadow-xs disabled:opacity-50"
+          >
+            <Sparkles className="w-3 h-3" />
+            <span>{isClaiming ? 'Syncing...' : 'Sync Certificate'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Social Verification & Profile Integration Bar */}
+      <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 text-xs shadow-xs no-print">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Add to LinkedIn Profile */}
+          <a
+            href={linkedInCertUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3.5 py-2 bg-[#0077b5] hover:bg-[#006097] text-white font-bold rounded-lg flex items-center gap-1.5 transition-colors shadow-xs"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            <span>Add to LinkedIn Profile</span>
+          </a>
+
+          {/* Share on LinkedIn */}
+          <a
+            href={linkedInShareUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-lg flex items-center gap-1.5 transition-colors"
+          >
+            <Share2 className="w-3.5 h-3.5 text-slate-600" />
+            <span>Share on LinkedIn</span>
+          </a>
+
+          {/* Share on X / Twitter */}
+          <a
+            href={twitterShareUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-lg flex items-center gap-1.5 transition-colors"
+          >
+            <Share2 className="w-3.5 h-3.5 text-slate-600" />
+            <span>Share on X</span>
+          </a>
+
+          {/* Copy Verification Link */}
+          <button
+            onClick={handleCopyVerificationLink}
+            className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <Copy className="w-3.5 h-3.5 text-slate-600" />
+            <span>{copied ? 'Link Copied!' : 'Copy Verification Link'}</span>
+          </button>
+        </div>
+
+        {/* Direct Portal Verification Link */}
+        <div>
+          <a
+            href={verifyUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1 underline"
+          >
+            <span>Open in Verification Portal</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
         </div>
       </div>
 
