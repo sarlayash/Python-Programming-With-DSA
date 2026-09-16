@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Navbar } from './components/Navbar';
+import { TopHeader } from './components/TopHeader';
+import { SidebarNav } from './components/SidebarNav';
 import { AuthModal } from './components/AuthModal';
 import { LearnerDashboard } from './components/LearnerDashboard';
 import { CurriculumView } from './components/CurriculumView';
@@ -47,6 +48,10 @@ export default function App() {
 
   // Verification route target (hash, path, or query based)
   const [verifyTarget, setVerifyTarget] = useState<ParsedVerificationTarget | null>(null);
+
+  // Navigation Sidebar states
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
 
   // Listen to URL hash/query/path changes for instant verification routing
   useEffect(() => {
@@ -201,6 +206,7 @@ export default function App() {
     if (context?.tab) {
       setCurriculumSubTab(context.tab);
     }
+    setIsMobileSidebarOpen(false);
     setCurrentTab(tab);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -248,178 +254,208 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 flex flex-col font-sans selection:bg-amber-500/20">
-      {/* Navigation Bar */}
-      <Navbar
-        currentTab={currentTab}
-        onSelectTab={(tab) => setCurrentTab(tab)}
+      {/* Header on Top */}
+      <TopHeader
         currentUser={currentUser}
         userRole={userRole}
         onOpenAuth={handleOpenAuth}
         onLogout={handleLogout}
         notifications={notifications}
         onMarkNotificationRead={handleMarkNotificationRead}
+        onToggleMobileSidebar={() => setIsMobileSidebarOpen(prev => !prev)}
+        isMobileSidebarOpen={isMobileSidebarOpen}
+        isSidebarCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
+        onSelectTab={(tab) => {
+          setVerifyTarget(null);
+          setIsMobileSidebarOpen(false);
+          setCurrentTab(tab);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {isLoadingApp ? (
-          <div className="h-96 flex flex-col items-center justify-center gap-3">
-            <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-xs font-semibold text-slate-500 font-mono">Initializing Enterprise Python Sandbox & Curriculum...</p>
-          </div>
-        ) : verifyTarget ? (
-          <VerificationView
-            type={verifyTarget.type}
-            id={verifyTarget.id}
-            onBackToPortal={() => {
-              setVerifyTarget(null);
-              window.location.hash = '';
-              setCurrentTab('dashboard');
-            }}
-            onNavigateToTab={(tab) => {
-              setVerifyTarget(null);
-              window.location.hash = '';
-              setCurrentTab(tab);
-            }}
-          />
-        ) : currentTab === 'verify' ? (
-          <VerificationView
-            type="cert"
-            id={certificate?.certificateId || 'CERT-KAPIL-ENTERPRISE-8910'}
-            onBackToPortal={() => setCurrentTab('dashboard')}
-            onNavigateToTab={(tab) => setCurrentTab(tab)}
-          />
-        ) : (
-          <>
-            {currentTab === 'dashboard' && (
-              <LearnerDashboard
-                learner={userRole === 'learner' ? currentUser : null}
-                curriculum={curriculum}
-                problems={problems}
-                earnedBadges={earnedBadges}
-                onNavigate={handleNavigate}
-                onOpenAuth={() => handleOpenAuth('learner')}
-              />
-            )}
+      {/* App Body Layout: Left Navigation + Right Sections */}
+      <div className="flex-1 flex flex-row items-stretch min-h-0 w-full">
+        {/* Left Navigation Sidebar */}
+        <SidebarNav
+          currentTab={verifyTarget ? 'verify' : currentTab}
+          onSelectTab={(tab) => {
+            setVerifyTarget(null);
+            setIsMobileSidebarOpen(false);
+            setCurrentTab(tab);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          userRole={userRole}
+          isMobileOpen={isMobileSidebarOpen}
+          onCloseMobile={() => setIsMobileSidebarOpen(false)}
+          isCollapsed={isSidebarCollapsed}
+          earnedBadgesCount={earnedBadges.length}
+          hasCertificate={Boolean(certificate)}
+        />
 
-            {currentTab === 'fundamentals' && (
-              <PythonFundamentalsView
-                learner={userRole === 'learner' ? currentUser : null}
-                onNavigateToCodingLab={() => handleNavigate('ide')}
-                onOpenAuth={() => handleOpenAuth('learner')}
-                onUpdateLearner={(updated) => {
-                  setCurrentUser(updated);
+        {/* Right Sections Area */}
+        <div className="flex-1 min-w-0 flex flex-col justify-between">
+          <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            {isLoadingApp ? (
+              <div className="h-96 flex flex-col items-center justify-center gap-3">
+                <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-xs font-semibold text-slate-500 font-mono">Initializing Enterprise Python Sandbox & Curriculum...</p>
+              </div>
+            ) : verifyTarget ? (
+              <VerificationView
+                type={verifyTarget.type}
+                id={verifyTarget.id}
+                onBackToPortal={() => {
+                  setVerifyTarget(null);
+                  window.location.hash = '';
+                  setCurrentTab('dashboard');
+                }}
+                onNavigateToTab={(tab) => {
+                  setVerifyTarget(null);
+                  window.location.hash = '';
+                  setCurrentTab(tab);
                 }}
               />
-            )}
-
-            {currentTab === 'curriculum' && (
-              <CurriculumView
-                curriculum={curriculum}
-                problems={problems}
-                learner={userRole === 'learner' ? currentUser : null}
-                selectedTopicCode={curriculumSelectedTopic}
-                initialSubTab={curriculumSubTab}
-                onSelectProblem={(pId) => {
-                  setSelectedProblemId(pId);
-                  setCurrentTab('ide');
-                }}
+            ) : currentTab === 'verify' ? (
+              <VerificationView
+                type="cert"
+                id={certificate?.certificateId || 'CERT-KAPIL-ENTERPRISE-8910'}
+                onBackToPortal={() => setCurrentTab('dashboard')}
+                onNavigateToTab={(tab) => setCurrentTab(tab)}
               />
-            )}
+            ) : (
+              <>
+                {currentTab === 'dashboard' && (
+                  <LearnerDashboard
+                    learner={userRole === 'learner' ? currentUser : null}
+                    curriculum={curriculum}
+                    problems={problems}
+                    earnedBadges={earnedBadges}
+                    onNavigate={handleNavigate}
+                    onOpenAuth={() => handleOpenAuth('learner')}
+                  />
+                )}
 
-            {currentTab === 'ide' && (
-              <CodingLab
-                problemId={selectedProblemId}
-                problems={problems}
-                learner={userRole === 'learner' ? currentUser : null}
-                onProblemSolved={handleProblemSolved}
-                onOpenAuth={() => handleOpenAuth('learner')}
-              />
-            )}
+                {currentTab === 'fundamentals' && (
+                  <PythonFundamentalsView
+                    learner={userRole === 'learner' ? currentUser : null}
+                    onNavigateToCodingLab={() => handleNavigate('ide')}
+                    onOpenAuth={() => handleOpenAuth('learner')}
+                    onUpdateLearner={(updated) => {
+                      setCurrentUser(updated);
+                    }}
+                  />
+                )}
 
-            {currentTab === 'debugging' && (
-              <DebuggingLab
-                currentUser={userRole === 'learner' ? currentUser : null}
-                onOpenAuth={() => handleOpenAuth('learner')}
-                onUpdateLearner={(updated) => {
-                  setCurrentUser(updated);
-                }}
-              />
-            )}
+                {currentTab === 'curriculum' && (
+                  <CurriculumView
+                    curriculum={curriculum}
+                    problems={problems}
+                    learner={userRole === 'learner' ? currentUser : null}
+                    selectedTopicCode={curriculumSelectedTopic}
+                    initialSubTab={curriculumSubTab}
+                    onSelectProblem={(pId) => {
+                      setSelectedProblemId(pId);
+                      setCurrentTab('ide');
+                    }}
+                  />
+                )}
 
-            {currentTab === 'facts' && (
-              <PythonFunFactsView
-                currentUser={userRole === 'learner' ? currentUser : null}
-                onOpenAuth={() => handleOpenAuth('learner')}
-                onUpdateLearner={(updated) => {
-                  setCurrentUser(updated);
-                }}
-                onNavigateToLab={() => handleNavigate('ide')}
-              />
-            )}
+                {currentTab === 'ide' && (
+                  <CodingLab
+                    problemId={selectedProblemId}
+                    problems={problems}
+                    learner={userRole === 'learner' ? currentUser : null}
+                    onProblemSolved={handleProblemSolved}
+                    onOpenAuth={() => handleOpenAuth('learner')}
+                  />
+                )}
 
-            {currentTab === 'wheel' && (
-              <SpinningWheelView
-                learner={userRole === 'learner' ? currentUser : null}
-                onOpenAuth={() => handleOpenAuth('learner')}
-                onNavigateToTab={(tab, ctx) => handleNavigate(tab, ctx)}
-                onNavigateToVerify={(type, id) => {
-                  setVerifyTarget({ type, id });
-                }}
-              />
-            )}
+                {currentTab === 'debugging' && (
+                  <DebuggingLab
+                    currentUser={userRole === 'learner' ? currentUser : null}
+                    onOpenAuth={() => handleOpenAuth('learner')}
+                    onUpdateLearner={(updated) => {
+                      setCurrentUser(updated);
+                    }}
+                  />
+                )}
 
-            {currentTab === 'badges' && (
-              <BadgesView
-                badges={badges}
-                earnedBadges={earnedBadges}
-                learner={userRole === 'learner' ? currentUser : null}
-                onOpenAuth={() => handleOpenAuth('learner')}
-                onSelectTopic={(code) => {
-                  setCurriculumSelectedTopic(code);
-                  setCurrentTab('curriculum');
-                }}
-                onBadgesUpdated={(updated) => setEarnedBadges(updated)}
-                onNavigateToVerify={(badgeId) => {
-                  setVerifyTarget({ type: 'badge', id: badgeId });
-                }}
-              />
-            )}
+                {currentTab === 'facts' && (
+                  <PythonFunFactsView
+                    currentUser={userRole === 'learner' ? currentUser : null}
+                    onOpenAuth={() => handleOpenAuth('learner')}
+                    onUpdateLearner={(updated) => {
+                      setCurrentUser(updated);
+                    }}
+                    onNavigateToLab={() => handleNavigate('ide')}
+                  />
+                )}
 
-            {currentTab === 'certificate' && (
-              <CertificateView
-                certificate={certificate}
-                learner={userRole === 'learner' ? currentUser : null}
-                onOpenAuth={() => handleOpenAuth('learner')}
-                onCertificateUpdated={(updated) => setCertificate(updated)}
-                onNavigateToVerify={(certId) => {
-                  setVerifyTarget({ type: 'cert', id: certId });
-                }}
-              />
-            )}
+                {currentTab === 'wheel' && (
+                  <SpinningWheelView
+                    learner={userRole === 'learner' ? currentUser : null}
+                    onOpenAuth={() => handleOpenAuth('learner')}
+                    onNavigateToTab={(tab, ctx) => handleNavigate(tab, ctx)}
+                    onNavigateToVerify={(type, id) => {
+                      setVerifyTarget({ type, id });
+                    }}
+                  />
+                )}
 
-            {currentTab === 'admin' && (
-              <AdminDashboard
-                onBackToLearner={() => setCurrentTab('dashboard')}
-              />
-            )}
-          </>
-        )}
-      </main>
+                {currentTab === 'badges' && (
+                  <BadgesView
+                    badges={badges}
+                    earnedBadges={earnedBadges}
+                    learner={userRole === 'learner' ? currentUser : null}
+                    onOpenAuth={() => handleOpenAuth('learner')}
+                    onSelectTopic={(code) => {
+                      setCurriculumSelectedTopic(code);
+                      setCurrentTab('curriculum');
+                    }}
+                    onBadgesUpdated={(updated) => setEarnedBadges(updated)}
+                    onNavigateToVerify={(badgeId) => {
+                      setVerifyTarget({ type: 'badge', id: badgeId });
+                    }}
+                  />
+                )}
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 no-print">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-800">Python Programming With DSA</span>
-            <span>&bull;</span>
-            <span className="text-amber-600 font-semibold">Powered By Kapil</span>
-          </div>
-          <div className="text-[11px] text-slate-400">
-            Enterprise ISO 27001 & SOC-2 Compliant &bull; Isolated Container Sandbox Execution
-          </div>
+                {currentTab === 'certificate' && (
+                  <CertificateView
+                    certificate={certificate}
+                    learner={userRole === 'learner' ? currentUser : null}
+                    onOpenAuth={() => handleOpenAuth('learner')}
+                    onCertificateUpdated={(updated) => setCertificate(updated)}
+                    onNavigateToVerify={(certId) => {
+                      setVerifyTarget({ type: 'cert', id: certId });
+                    }}
+                  />
+                )}
+
+                {currentTab === 'admin' && (
+                  <AdminDashboard
+                    onBackToLearner={() => setCurrentTab('dashboard')}
+                  />
+                )}
+              </>
+            )}
+          </main>
+
+          {/* Footer */}
+          <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 no-print">
+            <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-800">Python Programming With DSA</span>
+                <span>&bull;</span>
+                <span className="text-amber-600 font-semibold">Powered By Kapil</span>
+              </div>
+              <div className="text-[11px] text-slate-400">
+                Enterprise ISO 27001 & SOC-2 Compliant &bull; Isolated Container Sandbox Execution
+              </div>
+            </div>
+          </footer>
         </div>
-      </footer>
+      </div>
 
       {/* Authentication Modal */}
       <AuthModal
