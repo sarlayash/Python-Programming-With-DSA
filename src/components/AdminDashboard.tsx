@@ -37,6 +37,7 @@ import {
   fetchAllFirestoreLearners
 } from '../lib/firebase';
 import { INITIAL_FIREBASE_USERS } from '../lib/clientStore';
+import { UserAvatar } from './UserAvatar';
 
 interface AdminDashboardProps {
   onBackToLearner: () => void;
@@ -591,18 +592,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToLearner 
                         {/* 1. Name & Avatar */}
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2.5">
-                            {l.photo ? (
-                              <img src={l.photo} alt={l.name} className="w-7 h-7 rounded-full object-cover border border-slate-200" />
-                            ) : (
-                              <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500 to-amber-300 text-slate-950 font-bold flex items-center justify-center text-[10px] shadow-sm">
-                                {(l.name || 'U')[0].toUpperCase()}
-                              </div>
-                            )}
+                            <UserAvatar
+                              photo={l.photo}
+                              name={l.name}
+                              email={l.email}
+                              size="sm"
+                            />
                             <div>
                               <div className="font-bold text-slate-900 leading-snug">{l.name}</div>
                               {l.name.includes('(') && (
                                 <span className="text-[10px] text-slate-400 font-mono">
                                   {l.name.substring(l.name.indexOf('('))}
+                                </span>
+                              )}
+                              {(l.rewardPoints ?? 0) > 0 && (
+                                <span className="inline-block mt-0.5 text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                                  {l.rewardPoints} pts
                                 </span>
                               )}
                             </div>
@@ -822,13 +827,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToLearner 
           <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 text-xs max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200">
               <div className="flex items-center gap-3">
-                {selectedLearner.photo ? (
-                  <img src={selectedLearner.photo} alt={selectedLearner.name} className="w-10 h-10 rounded-full object-cover" />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-500 to-amber-300 text-slate-950 font-bold flex items-center justify-center text-sm">
-                    {(selectedLearner.name || 'U')[0].toUpperCase()}
-                  </div>
-                )}
+                <UserAvatar
+                  photo={selectedLearner.photo}
+                  name={selectedLearner.name}
+                  email={selectedLearner.email}
+                  size="lg"
+                />
                 <div>
                   <h3 className="font-bold text-sm text-slate-900">{selectedLearner.name}</h3>
                   <span className="text-[11px] text-slate-500 font-mono">{selectedLearner.email}</span>

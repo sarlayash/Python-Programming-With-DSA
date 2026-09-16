@@ -17,7 +17,8 @@ import {
   Target,
   RotateCw,
   Zap,
-  Trophy
+  Trophy,
+  Bug
 } from 'lucide-react';
 import { LearnerProfile, DayCurriculum, Problem, EarnedBadge } from '../types';
 
@@ -220,6 +221,52 @@ export const LearnerDashboard: React.FC<LearnerDashboardProps> = ({
         >
           <Zap className="w-4 h-4 fill-slate-950" />
           Spin & Take Quiz
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Python Debugging Lab: 5 Real-World Python Challenges */}
+      <div className="rounded-2xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/30 p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-start gap-3.5">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-slate-950 flex items-center justify-center shrink-0 shadow-md">
+            <Bug className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider rounded">
+                PYTHON DEBUG LAB
+              </span>
+              <span className="text-xs font-semibold text-emerald-700 flex items-center gap-1">
+                <Trophy className="w-3.5 h-3.5 text-emerald-600" />
+                Earn up to +350 Reward Points
+              </span>
+            </div>
+            <h3 className="text-base font-bold text-slate-900 mt-1">
+              5 Python Debugging Code Challenges
+            </h3>
+            <p className="text-xs text-slate-600 leading-relaxed max-w-xl">
+              Inspect broken codebases containing mutable default arguments, off-by-one indices, recursion depth errors, shallow copy collisions, and float precision quirks. Run real test harnesses and earn points directly on your profile.
+            </p>
+            {learner && (
+              <div className="mt-2 flex items-center gap-3 text-xs text-slate-600">
+                <span className="font-semibold text-emerald-800">
+                  {(learner.solvedDebuggingChallenges || []).length} / 5 Solved
+                </span>
+                <span>&bull;</span>
+                <span className="font-semibold text-amber-700">
+                  {learner.rewardPoints || 0} Reward Points Accumulated
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <button
+          onClick={() => onNavigate('debugging')}
+          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-2 shrink-0 transition-all active:scale-95"
+        >
+          <Bug className="w-4 h-4" />
+          Solve Debugging Challenges
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>

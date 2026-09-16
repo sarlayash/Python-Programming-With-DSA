@@ -163,7 +163,7 @@ export const INITIAL_FIREBASE_USERS: LearnerProfile[] = [
     name: 'Kapil Narula',
     email: 'kapilnarula27july@gmail.com',
     googleId: 'gid_kapil_narula_01',
-    photo: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+    photo: '',
     registrationDate: '2026-09-16T03:00:00.000Z',
     lastLogin: new Date().toISOString(),
     loginCount: 14,
@@ -395,6 +395,16 @@ export function loadClientDB(): ClientDB {
     db = getInitialDB();
   }
 
+  // Ensure any cached fake unsplash photos are stripped so clean initials or real avatars display
+  if (db.learners) {
+    for (const key of Object.keys(db.learners)) {
+      const l = db.learners[key];
+      if (l.photo && l.photo.includes('unsplash.com')) {
+        l.photo = '';
+      }
+    }
+  }
+
   // Self-healing integrity: ensure Master Certificate is always in client registry
   if (!db.certificates || db.certificates.length === 0) {
     db.certificates = [MASTER_CERTIFICATE];
@@ -521,7 +531,7 @@ export function clientGoogleLogin(payload: {
       name: name || email.split('@')[0],
       email,
       googleId: googleId || 'gid_' + Math.random().toString(36).substring(2, 10),
-      photo: photo || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+      photo: (photo && !photo.includes('unsplash.com')) ? photo : '',
       registrationDate: now,
       lastLogin: now,
       loginCount: 1,
@@ -547,7 +557,11 @@ export function clientGoogleLogin(payload: {
     learner.lastActive = now;
     learner.loginCount += 1;
     if (name && learner.name !== name) learner.name = name;
-    if (photo && learner.photo !== photo) learner.photo = photo;
+    if (photo && !photo.includes('unsplash.com')) {
+      learner.photo = photo;
+    } else if (learner.photo && learner.photo.includes('unsplash.com')) {
+      learner.photo = '';
+    }
     db.learners[learner.id] = learner;
   }
 
@@ -906,3 +920,42 @@ export async function clientSubmitMCQQuiz(payload: {
     newlyEarnedCertificate
   };
 }
+
+export function clientSubmitDebuggingReward(
+  learnerId: string,
+  challengeId: string,
+  rewardPoints: number
+): { success: boolean; learner: LearnerProfile | null } {
+  const db = loadClientDB();
+  const learner = db.learners[learnerId];
+  if (!learner) return { success: false, learner: null };
+
+  const solved = learner.solvedDebuggingChallenges || [];
+  if (!solved.includes(challengeId)) {
+    learner.solvedDebuggingChallenges = [...solved, challengeId];
+    learner.rewardPoints = (learner.rewardPoints || 0) + rewardPoints;
+
+    db.notifications.unshift({
+      id: `notif-dbg-${Date.now()}`,
+      title: '🏆 Debugging Challenge Solved!',
+      message: `You successfully resolved Python Debugging Challenge (${challengeId}) and earned +${rewardPoints} Reward Points!`,
+      type: 'badge',
+      targetUserId: learner.id,
+      read: false,
+      createdAt: new Date().toISOString()
+    });
+
+    db.auditLogs.unshift({
+      id: `audit-dbg-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      adminId: 'SYSTEM',
+      action: 'DEBUGGING_REWARD_CLAIMED',
+      details: `${learner.name} gained +${rewardPoints} reward points for debugging ${challengeId}`
+    });
+
+    saveClientDB(db);
+  }
+
+  return { success: true, learner };
+}
+

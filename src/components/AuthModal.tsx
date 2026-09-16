@@ -144,7 +144,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         email: cleanEmail,
         name: cleanName,
         googleId: 'gid_' + Math.abs(cleanEmail.split('').reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0)),
-        photo: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'
+        photo: ''
       });
 
       setStoredToken(res.token);
@@ -167,7 +167,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         email: 'kapilnarula27july@gmail.com',
         name: 'Kapil Narula',
         googleId: 'gid_kapil_narula_01',
-        photo: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80'
+        photo: ''
       });
       setStoredToken(res.token);
       localStorage.removeItem('kapil_logged_out');

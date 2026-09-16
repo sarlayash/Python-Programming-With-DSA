@@ -39,7 +39,7 @@ export const INITIAL_FIREBASE_USERS: LearnerProfile[] = [
     name: 'Kapil Narula',
     email: 'kapilnarula27july@gmail.com',
     googleId: 'gid_kapil_narula_01',
-    photo: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+    photo: '',
     registrationDate: '2026-09-16T03:00:00.000Z',
     lastLogin: new Date().toISOString(),
     loginCount: 14,

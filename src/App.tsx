@@ -9,6 +9,7 @@ import { CertificateView } from './components/CertificateView';
 import { AdminDashboard } from './components/AdminDashboard';
 import { VerificationView } from './components/VerificationView';
 import { SpinningWheelView } from './components/SpinningWheelView';
+import { DebuggingLab } from './components/DebuggingLab';
 import { api, setStoredToken, getStoredToken, clearStoredToken } from './lib/api';
 import { logoutFromFirebase, checkFirebaseRedirectResult } from './lib/firebase';
 import { parseVerificationTarget, ParsedVerificationTarget } from './lib/verification';
@@ -320,6 +321,16 @@ export default function App() {
                 learner={userRole === 'learner' ? currentUser : null}
                 onProblemSolved={handleProblemSolved}
                 onOpenAuth={() => handleOpenAuth('learner')}
+              />
+            )}
+
+            {currentTab === 'debugging' && (
+              <DebuggingLab
+                currentUser={userRole === 'learner' ? currentUser : null}
+                onOpenAuth={() => handleOpenAuth('learner')}
+                onUpdateLearner={(updated) => {
+                  setCurrentUser(updated);
+                }}
               />
             )}
 

@@ -17,6 +17,8 @@ export interface LearnerProfile {
   streak: number;
   accountStatus: 'active' | 'suspended';
   revealedProblems: string[]; // problem IDs where reveal answer was used
+  rewardPoints?: number;
+  solvedDebuggingChallenges?: string[];
 }
 
 export interface ExampleCase {

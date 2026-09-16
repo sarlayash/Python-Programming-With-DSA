@@ -13,9 +13,12 @@ import {
   LayoutDashboard,
   ExternalLink,
   QrCode,
-  RotateCw
+  RotateCw,
+  Bug,
+  Trophy
 } from 'lucide-react';
 import { LearnerProfile, AppNotification } from '../types';
+import { UserAvatar } from './UserAvatar';
 
 interface NavbarProps {
   currentTab: string;
@@ -93,6 +96,21 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Code2 className="w-3.5 h-3.5" />
               Coding Lab
+            </button>
+            <button
+              onClick={() => onSelectTab('debugging')}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                currentTab === 'debugging'
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
+                  : 'text-amber-300 hover:text-white hover:bg-slate-800/60'
+              }`}
+              title="5 Python Debugging Challenges - Gain Reward Points"
+            >
+              <Bug className="w-3.5 h-3.5" />
+              <span>Debug Lab</span>
+              <span className="text-[10px] bg-amber-400/20 text-amber-300 px-1.5 py-0.2 rounded-full font-mono font-bold">
+                +350 PTS
+              </span>
             </button>
             <button
               onClick={() => onSelectTab('wheel')}
@@ -207,35 +225,39 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
 
-            {/* Streak Indicator for Learners */}
+            {/* Streak & Reward Points for Learners */}
             {userRole === 'learner' && currentUser && (
-              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-amber-400 text-xs font-semibold">
-                <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                <span>{currentUser.streak || 1} Day Streak</span>
+              <div className="hidden sm:flex items-center gap-2">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-amber-400 text-xs font-semibold">
+                  <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                  <span>{currentUser.streak || 1}d</span>
+                </div>
+                <div
+                  onClick={() => onSelectTab('debugging')}
+                  className="cursor-pointer flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-emerald-400 text-xs font-semibold hover:bg-emerald-500/20 transition-colors"
+                  title="Your Reward Points & XP"
+                >
+                  <Trophy className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>{currentUser.rewardPoints || 0} PTS</span>
+                </div>
               </div>
             )}
 
             {/* User Profile or Login CTA */}
             {currentUser ? (
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
-                  {currentUser.photo ? (
-                    <img
-                      src={currentUser.photo}
-                      alt={currentUser.name}
-                      referrerPolicy="no-referrer"
-                      className="w-7 h-7 rounded-full object-cover ring-1 ring-slate-700"
-                    />
-                  ) : (
-                    <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-amber-400">
-                      {currentUser.name ? currentUser.name[0] : 'U'}
-                    </div>
-                  )}
+                <div className="flex items-center gap-2.5 pl-2 border-l border-slate-800">
+                  <UserAvatar
+                    photo={currentUser.photo}
+                    name={currentUser.name}
+                    email={currentUser.email}
+                    size="sm"
+                  />
                   <div className="hidden md:block text-left">
-                    <div className="text-xs font-semibold text-slate-200 leading-tight">
+                    <div className="text-xs font-semibold text-slate-200 leading-tight truncate max-w-[140px]">
                       {currentUser.name}
                     </div>
-                    <div className="text-[10px] text-slate-400">
+                    <div className="text-[10px] text-slate-400 truncate max-w-[140px]">
                       {userRole === 'admin' ? 'Administrator' : currentUser.email}
                     </div>
                   </div>
@@ -286,6 +308,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             className={`px-2.5 py-1 rounded whitespace-nowrap ${currentTab === 'ide' ? 'text-amber-400 font-bold bg-slate-800' : 'text-slate-300'}`}
           >
             Coding Lab
+          </button>
+          <button
+            onClick={() => onSelectTab('debugging')}
+            className={`px-2.5 py-1 rounded whitespace-nowrap flex items-center gap-1 ${currentTab === 'debugging' ? 'text-slate-950 font-bold bg-amber-500' : 'text-amber-300 font-semibold'}`}
+          >
+            <Bug className="w-3 h-3" />
+            Debug Lab
           </button>
           <button
             onClick={() => onSelectTab('wheel')}

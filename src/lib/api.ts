@@ -19,6 +19,7 @@ import {
   clientExecutePython,
   clientSubmitCode,
   clientSubmitMCQQuiz,
+  clientSubmitDebuggingReward,
   MASTER_CERTIFICATE
 } from './clientStore';
 import { INITIAL_BADGES } from '../../server/curriculumData';
@@ -647,6 +648,19 @@ export const api = {
         saveClientDB(db);
       }
       return true;
+    }
+  },
+
+  submitDebuggingReward: async (learnerId: string, challengeId: string, rewardPoints: number) => {
+    try {
+      const res = await request<{ success: boolean; learner: LearnerProfile }>(`/api/learner/debug-challenge`, {
+        method: 'POST',
+        body: JSON.stringify({ learnerId, challengeId, rewardPoints })
+      });
+      return res.learner;
+    } catch {
+      const res = clientSubmitDebuggingReward(learnerId, challengeId, rewardPoints);
+      return res.learner;
     }
   },
 

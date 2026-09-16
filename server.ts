@@ -188,7 +188,7 @@ app.post('/api/auth/learner/google', (req, res) => {
       name: userName || userEmail.split('@')[0],
       email: userEmail,
       googleId: userGoogleId || 'gid_' + Math.random().toString(36).substring(2),
-      photo: userPhoto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+      photo: (userPhoto && !userPhoto.includes('unsplash.com')) ? userPhoto : '',
       registrationDate: now,
       lastLogin: now,
       loginCount: 1,
@@ -218,7 +218,11 @@ app.post('/api/auth/learner/google', (req, res) => {
     learner.lastActive = now;
     learner.loginCount = (learner.loginCount || 0) + 1;
     if (userName) learner.name = userName;
-    if (userPhoto) learner.photo = userPhoto;
+    if (userPhoto && !userPhoto.includes('unsplash.com')) {
+      learner.photo = userPhoto;
+    } else if (learner.photo && learner.photo.includes('unsplash.com')) {
+      learner.photo = '';
+    }
     db.saveLearner(learner);
   }
 
@@ -1023,6 +1027,34 @@ app.put('/api/admin/learners/:id', (req, res) => {
   const updatedLearner = { ...learner, ...updates };
   db.saveLearner(updatedLearner);
   res.json({ success: true, learner: updatedLearner });
+});
+
+// Award reward points for solving debugging challenges
+app.post('/api/learner/debug-challenge', (req, res) => {
+  const { learnerId, challengeId, rewardPoints } = req.body;
+  if (!learnerId || !challengeId) {
+    return res.status(400).json({ error: 'learnerId and challengeId are required' });
+  }
+  const learner = db.getLearnerById(learnerId);
+  if (!learner) return res.status(404).json({ error: 'Learner not found' });
+
+  const solved = learner.solvedDebuggingChallenges || [];
+  if (!solved.includes(challengeId)) {
+    learner.solvedDebuggingChallenges = [...solved, challengeId];
+    learner.rewardPoints = (learner.rewardPoints || 0) + (Number(rewardPoints) || 50);
+    db.saveLearner(learner);
+
+    db.addAuditLog({
+      id: 'audit-' + Date.now(),
+      timestamp: new Date().toISOString(),
+      adminId: 'SYSTEM',
+      action: 'DEBUGGING_CHALLENGE_SOLVED',
+      target: learner.id,
+      details: `${learner.name} solved Python Debugging Challenge (${challengeId}) and earned +${rewardPoints} Reward Points!`
+    });
+  }
+
+  res.json({ success: true, learner });
 });
 
 // Delete learner
