@@ -1,6 +1,6 @@
 {
   "name": "Python Programming With DSA | Powered By Kapil",
-  "description": "Enterprise learning management and coding assessment portal with real Python IDE, curriculum T1-T10, daily spinning wheel with randomized 10 MCQs, daily badges, and verifiable certificates.",
+  "description": "Enterprise learning management and coding assessment portal with real Python IDE, 5-section Fundamentals to Advanced curriculum with notes, 25 MCQs and 15 coding IDE challenges, T1-T10 tracks, daily spinning wheel with randomized 10 MCQs, daily badges, and verifiable certificates.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

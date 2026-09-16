@@ -11,6 +11,7 @@ import { VerificationView } from './components/VerificationView';
 import { SpinningWheelView } from './components/SpinningWheelView';
 import { DebuggingLab } from './components/DebuggingLab';
 import { PythonFunFactsView } from './components/PythonFunFactsView';
+import { PythonFundamentalsView } from './components/PythonFundamentalsView';
 import { api, setStoredToken, getStoredToken, clearStoredToken } from './lib/api';
 import { logoutFromFirebase, checkFirebaseRedirectResult } from './lib/firebase';
 import { parseVerificationTarget, ParsedVerificationTarget } from './lib/verification';
@@ -298,6 +299,17 @@ export default function App() {
                 earnedBadges={earnedBadges}
                 onNavigate={handleNavigate}
                 onOpenAuth={() => handleOpenAuth('learner')}
+              />
+            )}
+
+            {currentTab === 'fundamentals' && (
+              <PythonFundamentalsView
+                learner={userRole === 'learner' ? currentUser : null}
+                onNavigateToCodingLab={() => handleNavigate('ide')}
+                onOpenAuth={() => handleOpenAuth('learner')}
+                onUpdateLearner={(updated) => {
+                  setCurrentUser(updated);
+                }}
               />
             )}
 

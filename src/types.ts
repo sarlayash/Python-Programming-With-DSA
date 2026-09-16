@@ -20,6 +20,49 @@ export interface LearnerProfile {
   rewardPoints?: number;
   solvedDebuggingChallenges?: string[];
   claimedFunFacts?: string[];
+  completedFundamentalsSections?: string[];
+  solvedFundamentalsCoding?: string[];
+  fundamentalsQuizScores?: Record<string, number>;
+}
+
+export interface FundamentalsMCQ {
+  id: string;
+  question: string;
+  codeSnippet?: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+}
+
+export interface FundamentalsCodingProblem {
+  id: string;
+  title: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  description: string;
+  starterCode: string;
+  solutionCode: string;
+  explanation: string;
+  testCases: { input: string; expectedOutput: string; isHidden?: boolean }[];
+  hints: string[];
+}
+
+export interface FundamentalsSection {
+  id: string;
+  sectionNumber: number;
+  title: string;
+  subtitle: string;
+  level: 'Beginner' | 'Intermediate' | 'Advanced';
+  estimatedTime: string;
+  summary: string;
+  notes: {
+    overview: string;
+    keyConcepts: { title: string; explanation: string; codeExample?: string }[];
+    interviewTips: string[];
+    commonPitfalls: { pitfall: string; solution: string }[];
+    cheatSheet: string;
+  };
+  mcqs: FundamentalsMCQ[];
+  codingProblems: FundamentalsCodingProblem[];
 }
 
 export interface PythonFunFact {

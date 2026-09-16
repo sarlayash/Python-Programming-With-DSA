@@ -18,7 +18,8 @@ import {
   RotateCw,
   Zap,
   Trophy,
-  Bug
+  Bug,
+  GraduationCap
 } from 'lucide-react';
 import { LearnerProfile, DayCurriculum, Problem, EarnedBadge } from '../types';
 
@@ -221,6 +222,52 @@ export const LearnerDashboard: React.FC<LearnerDashboardProps> = ({
         >
           <Zap className="w-4 h-4 fill-slate-950" />
           Spin & Take Quiz
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Python Fundamentals to Advanced Track Banner */}
+      <div className="rounded-2xl bg-gradient-to-r from-indigo-950/90 via-slate-900 to-indigo-950/80 border border-indigo-500/30 p-5 sm:p-6 text-white shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-white flex items-center justify-center shrink-0 shadow-md">
+            <GraduationCap className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-2 py-0.5 bg-indigo-500 text-white text-[10px] font-black uppercase tracking-wider rounded">
+                NEW CURRICULUM TRACK
+              </span>
+              <span className="text-xs font-semibold text-amber-300 flex items-center gap-1">
+                <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                5 Progressive Sections &bull; 25 MCQs &bull; 15 Coding IDE Challenges
+              </span>
+            </div>
+            <h3 className="text-base sm:text-lg font-bold text-white mt-1">
+              Fundamentals of Python to Advanced Mastery
+            </h3>
+            <p className="text-xs text-slate-300 leading-relaxed max-w-2xl mt-0.5">
+              Move from core fundamentals (variables, types, control flow, loops, data structures) to advanced architecture (functions, OOP, decorators, generators, and context managers). Includes comprehensive notes, 5 MCQs, and 3 live interactive coding IDE challenges for every topic!
+            </p>
+            {learner && (
+              <div className="mt-2.5 flex items-center gap-3 text-xs text-slate-300">
+                <span className="font-semibold text-amber-400">
+                  {(learner.completedFundamentalsSections || []).length} / 5 Sections Completed
+                </span>
+                <span>&bull;</span>
+                <span className="font-semibold text-emerald-400">
+                  {(learner.solvedFundamentalsCoding || []).length} / 15 Coding Challenges Solved
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <button
+          onClick={() => onNavigate('fundamentals')}
+          className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-2 shrink-0 transition-all active:scale-95"
+        >
+          <GraduationCap className="w-4 h-4" />
+          Explore Track
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>

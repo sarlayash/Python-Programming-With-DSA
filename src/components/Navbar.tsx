@@ -16,7 +16,8 @@ import {
   RotateCw,
   Bug,
   Trophy,
-  Sparkles
+  Sparkles,
+  GraduationCap
 } from 'lucide-react';
 import { LearnerProfile, AppNotification } from '../types';
 import { UserAvatar } from './UserAvatar';
@@ -75,6 +76,21 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <LayoutDashboard className="w-3.5 h-3.5" />
               Dashboard
+            </button>
+            <button
+              onClick={() => onSelectTab('fundamentals')}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                currentTab === 'fundamentals'
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
+                  : 'text-amber-300 hover:text-white hover:bg-slate-800/60'
+              }`}
+              title="Python Fundamentals to Advanced - 5 Sections with Notes, 5 MCQs & 3 IDE Problems each"
+            >
+              <GraduationCap className="w-3.5 h-3.5" />
+              <span>Fundamentals</span>
+              <span className="text-[10px] bg-amber-400/20 text-amber-300 px-1.5 py-0.2 rounded-full font-mono font-bold">
+                5 Sec
+              </span>
             </button>
             <button
               onClick={() => onSelectTab('curriculum')}
@@ -312,6 +328,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             className={`px-2.5 py-1 rounded whitespace-nowrap ${currentTab === 'dashboard' ? 'text-amber-400 font-bold bg-slate-800' : 'text-slate-300'}`}
           >
             Dashboard
+          </button>
+          <button
+            onClick={() => onSelectTab('fundamentals')}
+            className={`px-2.5 py-1 rounded whitespace-nowrap flex items-center gap-1 ${currentTab === 'fundamentals' ? 'text-slate-950 font-bold bg-amber-500' : 'text-amber-300 font-semibold'}`}
+          >
+            <GraduationCap className="w-3 h-3" />
+            Fundamentals
           </button>
           <button
             onClick={() => onSelectTab('curriculum')}
