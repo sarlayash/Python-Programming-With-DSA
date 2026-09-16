@@ -271,6 +271,52 @@ export const LearnerDashboard: React.FC<LearnerDashboardProps> = ({
         </button>
       </div>
 
+      {/* Python Lore & Fun Facts: Earn Reward Points */}
+      <div className="rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/30 p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-start gap-3.5">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 flex items-center justify-center shrink-0 shadow-md">
+            <Sparkles className="w-6 h-6 text-slate-950" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider rounded">
+                PYTHON LORE & FUN FACTS
+              </span>
+              <span className="text-xs font-semibold text-amber-700 flex items-center gap-1">
+                <Trophy className="w-3.5 h-3.5 text-amber-600" />
+                Earn up to +270 Reward Points
+              </span>
+            </div>
+            <h3 className="text-base font-bold text-slate-900 mt-1">
+              Curious Python Quirks, Easter Eggs & Real-World Lore
+            </h3>
+            <p className="text-xs text-slate-600 leading-relaxed max-w-xl">
+              Why is Python named after British comedians? What happens when you type <code>import antigravity</code> or <code>from __future__ import braces</code>? Uncover 10 secrets, test your curiosity with mini-quizzes, and claim instant points!
+            </p>
+            {learner && (
+              <div className="mt-2 flex items-center gap-3 text-xs text-slate-600">
+                <span className="font-semibold text-amber-800">
+                  {(learner.claimedFunFacts || []).length} / 10 Facts Unlocked
+                </span>
+                <span>&bull;</span>
+                <span className="font-semibold text-emerald-700">
+                  {learner.rewardPoints || 0} Total Reward Points
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <button
+          onClick={() => onNavigate('facts')}
+          className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-md flex items-center gap-2 shrink-0 transition-all active:scale-95"
+        >
+          <Sparkles className="w-4 h-4" />
+          Discover & Earn Points
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
       {/* Daily Mission & Quick Shortcuts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Daily Mission & Next Up */}

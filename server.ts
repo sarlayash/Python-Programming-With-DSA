@@ -1057,6 +1057,34 @@ app.post('/api/learner/debug-challenge', (req, res) => {
   res.json({ success: true, learner });
 });
 
+// Award reward points for unlocking Python fun facts
+app.post('/api/learner/claim-fact', (req, res) => {
+  const { learnerId, factId, rewardPoints } = req.body;
+  if (!learnerId || !factId) {
+    return res.status(400).json({ error: 'learnerId and factId are required' });
+  }
+  const learner = db.getLearnerById(learnerId);
+  if (!learner) return res.status(404).json({ error: 'Learner not found' });
+
+  const claimed = learner.claimedFunFacts || [];
+  if (!claimed.includes(factId)) {
+    learner.claimedFunFacts = [...claimed, factId];
+    learner.rewardPoints = (learner.rewardPoints || 0) + (Number(rewardPoints) || 25);
+    db.saveLearner(learner);
+
+    db.addAuditLog({
+      id: 'audit-' + Date.now(),
+      timestamp: new Date().toISOString(),
+      adminId: 'SYSTEM',
+      action: 'FUN_FACT_CLAIMED',
+      target: learner.id,
+      details: `${learner.name} unlocked Python Fun Fact (${factId}) and earned +${rewardPoints} Reward Points!`
+    });
+  }
+
+  res.json({ success: true, learner });
+});
+
 // Delete learner
 app.delete('/api/admin/learners/:id', (req, res) => {
   const user = (req as any).user;

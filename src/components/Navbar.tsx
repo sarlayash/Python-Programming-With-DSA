@@ -15,7 +15,8 @@ import {
   QrCode,
   RotateCw,
   Bug,
-  Trophy
+  Trophy,
+  Sparkles
 } from 'lucide-react';
 import { LearnerProfile, AppNotification } from '../types';
 import { UserAvatar } from './UserAvatar';
@@ -110,6 +111,21 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Debug Lab</span>
               <span className="text-[10px] bg-amber-400/20 text-amber-300 px-1.5 py-0.2 rounded-full font-mono font-bold">
                 +350 PTS
+              </span>
+            </button>
+            <button
+              onClick={() => onSelectTab('facts')}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                currentTab === 'facts'
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
+                  : 'text-amber-300 hover:text-white hover:bg-slate-800/60'
+              }`}
+              title="Python Lore, Easter Eggs & Fun Facts - Gain Reward Points"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Fun Facts</span>
+              <span className="text-[10px] bg-amber-400/20 text-amber-300 px-1.5 py-0.2 rounded-full font-mono font-bold">
+                +270 PTS
               </span>
             </button>
             <button
@@ -315,6 +331,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <Bug className="w-3 h-3" />
             Debug Lab
+          </button>
+          <button
+            onClick={() => onSelectTab('facts')}
+            className={`px-2.5 py-1 rounded whitespace-nowrap flex items-center gap-1 ${currentTab === 'facts' ? 'text-slate-950 font-bold bg-amber-500' : 'text-amber-300 font-semibold'}`}
+          >
+            <Sparkles className="w-3 h-3" />
+            Fun Facts
           </button>
           <button
             onClick={() => onSelectTab('wheel')}

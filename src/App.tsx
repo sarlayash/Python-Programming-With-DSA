@@ -10,6 +10,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { VerificationView } from './components/VerificationView';
 import { SpinningWheelView } from './components/SpinningWheelView';
 import { DebuggingLab } from './components/DebuggingLab';
+import { PythonFunFactsView } from './components/PythonFunFactsView';
 import { api, setStoredToken, getStoredToken, clearStoredToken } from './lib/api';
 import { logoutFromFirebase, checkFirebaseRedirectResult } from './lib/firebase';
 import { parseVerificationTarget, ParsedVerificationTarget } from './lib/verification';
@@ -331,6 +332,17 @@ export default function App() {
                 onUpdateLearner={(updated) => {
                   setCurrentUser(updated);
                 }}
+              />
+            )}
+
+            {currentTab === 'facts' && (
+              <PythonFunFactsView
+                currentUser={userRole === 'learner' ? currentUser : null}
+                onOpenAuth={() => handleOpenAuth('learner')}
+                onUpdateLearner={(updated) => {
+                  setCurrentUser(updated);
+                }}
+                onNavigateToLab={() => handleNavigate('ide')}
               />
             )}
 

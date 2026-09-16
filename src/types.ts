@@ -19,6 +19,24 @@ export interface LearnerProfile {
   revealedProblems: string[]; // problem IDs where reveal answer was used
   rewardPoints?: number;
   solvedDebuggingChallenges?: string[];
+  claimedFunFacts?: string[];
+}
+
+export interface PythonFunFact {
+  id: string;
+  title: string;
+  category: 'History & Origin' | 'Easter Egg' | 'Python Quirk' | 'Real-World' | 'Syntax Magic';
+  tagline: string;
+  description: string;
+  codeSnippet?: string;
+  explanation: string;
+  interactiveQuestion: {
+    question: string;
+    options: string[];
+    correctIndex: number;
+    explanation: string;
+  };
+  rewardPoints: number;
 }
 
 export interface ExampleCase {

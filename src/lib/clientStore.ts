@@ -959,3 +959,42 @@ export function clientSubmitDebuggingReward(
   return { success: true, learner };
 }
 
+export function clientClaimFunFact(
+  learnerId: string,
+  factId: string,
+  rewardPoints: number
+): { success: boolean; learner: LearnerProfile | null } {
+  const db = loadClientDB();
+  const learner = db.learners[learnerId];
+  if (!learner) return { success: false, learner: null };
+
+  const claimed = learner.claimedFunFacts || [];
+  if (!claimed.includes(factId)) {
+    learner.claimedFunFacts = [...claimed, factId];
+    learner.rewardPoints = (learner.rewardPoints || 0) + rewardPoints;
+
+    db.notifications.unshift({
+      id: `notif-fact-${Date.now()}`,
+      title: '💡 Python Lore Unlocked!',
+      message: `You discovered a Python fun fact and earned +${rewardPoints} Reward Points!`,
+      type: 'badge',
+      targetUserId: learner.id,
+      read: false,
+      createdAt: new Date().toISOString()
+    });
+
+    db.auditLogs.unshift({
+      id: `audit-fact-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      adminId: 'SYSTEM',
+      action: 'FUN_FACT_REWARD_CLAIMED',
+      details: `${learner.name} gained +${rewardPoints} reward points for discovering fun fact ${factId}`
+    });
+
+    saveClientDB(db);
+  }
+
+  return { success: true, learner };
+}
+
+

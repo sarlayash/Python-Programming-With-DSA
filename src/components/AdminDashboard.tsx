@@ -27,7 +27,8 @@ import {
   Calendar,
   Mail,
   Radio,
-  Check
+  Check,
+  Trophy
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { DayCurriculum, Problem, Badge, LearnerProfile } from '../types';
@@ -859,6 +860,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToLearner 
               <div>
                 <span className="text-[10px] text-slate-400 uppercase font-bold">Solved Problems</span>
                 <p className="font-bold text-emerald-700">{selectedLearner.solvedProblems?.length || 0} questions</p>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 uppercase font-bold">Reward Points</span>
+                <p className="font-bold text-amber-600 flex items-center gap-1">
+                  <Trophy className="w-3.5 h-3.5 text-amber-500" />
+                  {selectedLearner.rewardPoints || 0} PTS
+                </p>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 uppercase font-bold">Python Fun Facts</span>
+                <p className="font-bold text-indigo-600">
+                  {selectedLearner.claimedFunFacts?.length || 0} / 10 Unlocked
+                </p>
               </div>
               <div>
                 <span className="text-[10px] text-slate-400 uppercase font-bold">Completed Modules</span>

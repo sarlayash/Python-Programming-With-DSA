@@ -20,6 +20,7 @@ import {
   clientSubmitCode,
   clientSubmitMCQQuiz,
   clientSubmitDebuggingReward,
+  clientClaimFunFact,
   MASTER_CERTIFICATE
 } from './clientStore';
 import { INITIAL_BADGES } from '../../server/curriculumData';
@@ -660,6 +661,19 @@ export const api = {
       return res.learner;
     } catch {
       const res = clientSubmitDebuggingReward(learnerId, challengeId, rewardPoints);
+      return res.learner;
+    }
+  },
+
+  claimFunFact: async (learnerId: string, factId: string, rewardPoints: number) => {
+    try {
+      const res = await request<{ success: boolean; learner: LearnerProfile }>(`/api/learner/claim-fact`, {
+        method: 'POST',
+        body: JSON.stringify({ learnerId, factId, rewardPoints })
+      });
+      return res.learner;
+    } catch {
+      const res = clientClaimFunFact(learnerId, factId, rewardPoints);
       return res.learner;
     }
   },
