@@ -33,25 +33,176 @@ export interface DatabaseSchema {
 const DB_DIR = path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DB_DIR, 'db.json');
 
-function getDefaultDB(): DatabaseSchema {
-  const initialLearner: LearnerProfile = {
+export const INITIAL_FIREBASE_USERS: LearnerProfile[] = [
+  {
     id: 'usr_kapil_01',
     name: 'Kapil Narula',
     email: 'kapilnarula27july@gmail.com',
-    googleId: 'google-sub-1092837461523',
-    photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    registrationDate: new Date(Date.now() - 7 * 86400000).toISOString(),
+    googleId: 'gid_kapil_narula_01',
+    photo: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+    registrationDate: '2026-09-16T03:00:00.000Z',
     lastLogin: new Date().toISOString(),
     loginCount: 14,
     lastActive: new Date().toISOString(),
     currentDay: 'T1',
-    completedDays: ['T1'],
-    solvedProblems: ['p-56', 'p-58'],
-    attemptedProblems: ['p-56', 'p-57', 'p-58'],
+    completedDays: ['T1', 'T2', 'T3', 'T4'],
+    solvedProblems: ['p-56', 'p-58', 'p-60', 'p-62'],
+    attemptedProblems: ['p-56', 'p-57', 'p-58', 'p-60', 'p-62'],
     streak: 4,
     accountStatus: 'active',
     revealedProblems: []
-  };
+  },
+  {
+    id: 'usr_LvNLjIda',
+    name: 'Shreya (2025PCEACS157)',
+    email: '2025pceacsshreya157@gmail.com',
+    googleId: 'LvNLjIdaQDcfWsRTVgYVfYAwQx2',
+    photo: '',
+    registrationDate: '2026-09-16T03:20:00.000Z',
+    lastLogin: '2026-09-16T03:20:00.000Z',
+    loginCount: 2,
+    lastActive: new Date().toISOString(),
+    currentDay: 'T1',
+    completedDays: ['T1'],
+    solvedProblems: ['p-56'],
+    attemptedProblems: ['p-56'],
+    streak: 1,
+    accountStatus: 'active',
+    revealedProblems: []
+  },
+  {
+    id: 'usr_e7dtuqRq',
+    name: 'Yuvraj (2025PCEACS188)',
+    email: '2025pceacsyuvraj188@gmail.com',
+    googleId: 'e7dtuqRq3yShryzAnN4hIYwgi7R2',
+    photo: '',
+    registrationDate: '2026-09-16T03:18:00.000Z',
+    lastLogin: '2026-09-16T03:18:00.000Z',
+    loginCount: 2,
+    lastActive: new Date().toISOString(),
+    currentDay: 'T1',
+    completedDays: ['T1'],
+    solvedProblems: ['p-56', 'p-58'],
+    attemptedProblems: ['p-56', 'p-58'],
+    streak: 1,
+    accountStatus: 'active',
+    revealedProblems: []
+  },
+  {
+    id: 'usr_qSCHDc97',
+    name: 'Samruddhi (2025PCEACS)',
+    email: '2025pceacssamruddhi@gmail.com',
+    googleId: 'qSCHDc97WcbWpqPl9ZH109mK8u1',
+    photo: '',
+    registrationDate: '2026-09-16T03:17:00.000Z',
+    lastLogin: '2026-09-16T03:17:00.000Z',
+    loginCount: 1,
+    lastActive: new Date().toISOString(),
+    currentDay: 'T1',
+    completedDays: [],
+    solvedProblems: [],
+    attemptedProblems: ['p-56'],
+    streak: 1,
+    accountStatus: 'active',
+    revealedProblems: []
+  },
+  {
+    id: 'usr_xFNitG6S',
+    name: 'Suhani Sethiya',
+    email: 'suhanisethiya1610@gmail.com',
+    googleId: 'xFNitG6SG1gfHdBfHitux6UjV3e2',
+    photo: '',
+    registrationDate: '2026-09-16T03:15:00.000Z',
+    lastLogin: '2026-09-16T03:15:00.000Z',
+    loginCount: 3,
+    lastActive: new Date().toISOString(),
+    currentDay: 'T2',
+    completedDays: ['T1'],
+    solvedProblems: ['p-56', 'p-57'],
+    attemptedProblems: ['p-56', 'p-57'],
+    streak: 2,
+    accountStatus: 'active',
+    revealedProblems: []
+  },
+  {
+    id: 'usr_x6efSB3n',
+    name: 'Vinayak Sh',
+    email: 'vinayakshhh2007@gmail.com',
+    googleId: 'x6efSB3nSsSmXzBVI5zZlDNI8po1',
+    photo: '',
+    registrationDate: '2026-09-16T03:12:00.000Z',
+    lastLogin: '2026-09-16T03:12:00.000Z',
+    loginCount: 2,
+    lastActive: new Date().toISOString(),
+    currentDay: 'T1',
+    completedDays: ['T1'],
+    solvedProblems: ['p-56'],
+    attemptedProblems: ['p-56', 'p-58'],
+    streak: 1,
+    accountStatus: 'active',
+    revealedProblems: []
+  },
+  {
+    id: 'usr_6DLRMRjV',
+    name: 'Sulekha Kumari',
+    email: 'sulekhakumari96546@gmail.com',
+    googleId: '6DLRMRjVLfUrl6jU4OhW51iV7kL2',
+    photo: '',
+    registrationDate: '2026-09-16T03:10:00.000Z',
+    lastLogin: '2026-09-16T03:10:00.000Z',
+    loginCount: 2,
+    lastActive: new Date().toISOString(),
+    currentDay: 'T1',
+    completedDays: [],
+    solvedProblems: ['p-56'],
+    attemptedProblems: ['p-56'],
+    streak: 1,
+    accountStatus: 'active',
+    revealedProblems: []
+  },
+  {
+    id: 'usr_4g7IMNUJ',
+    name: 'Vaishnavi',
+    email: 'vaishnavi020230@gmail.com',
+    googleId: '4g7IMNUJmqeIQ9LLIBBYV98mRt2',
+    photo: '',
+    registrationDate: '2026-09-16T03:08:00.000Z',
+    lastLogin: '2026-09-16T03:08:00.000Z',
+    loginCount: 2,
+    lastActive: new Date().toISOString(),
+    currentDay: 'T1',
+    completedDays: ['T1'],
+    solvedProblems: ['p-56'],
+    attemptedProblems: ['p-56'],
+    streak: 1,
+    accountStatus: 'active',
+    revealedProblems: []
+  },
+  {
+    id: 'usr_1l75wDnO',
+    name: 'Y.S. Sarda',
+    email: 'yssarda8875@gmail.com',
+    googleId: '1l75wDnO5DQtDj4cGdUXTBIzxO9',
+    photo: '',
+    registrationDate: '2026-09-16T03:05:00.000Z',
+    lastLogin: '2026-09-16T03:05:00.000Z',
+    loginCount: 2,
+    lastActive: new Date().toISOString(),
+    currentDay: 'T1',
+    completedDays: ['T1'],
+    solvedProblems: ['p-56', 'p-58'],
+    attemptedProblems: ['p-56', 'p-58'],
+    streak: 2,
+    accountStatus: 'active',
+    revealedProblems: []
+  }
+];
+
+function getDefaultDB(): DatabaseSchema {
+  const learnersMap: Record<string, LearnerProfile> = {};
+  for (const user of INITIAL_FIREBASE_USERS) {
+    learnersMap[user.id] = { ...user };
+  }
 
   const initialEarnedBadges: EarnedBadge[] = [
     {
@@ -115,9 +266,7 @@ function getDefaultDB(): DatabaseSchema {
       adminId: process.env.ADMIN_ID || 'KAPILADMIN',
       passwordHash: process.env.ADMIN_PASSWORD || 'ADMIN123'
     },
-    learners: {
-      [initialLearner.id]: initialLearner
-    },
+    learners: learnersMap,
     curriculum: INITIAL_CURRICULUM,
     problems: INITIAL_PROBLEMS,
     submissions: [
@@ -205,6 +354,16 @@ class Database {
           const defaults = getDefaultDB();
           this.data.earnedBadges = defaults.earnedBadges;
         }
+        // Always ensure all Firebase authenticated users exist in server database
+        if (!this.data.learners) {
+          this.data.learners = {};
+        }
+        for (const fbUser of INITIAL_FIREBASE_USERS) {
+          if (!this.data.learners[fbUser.id]) {
+            this.data.learners[fbUser.id] = { ...fbUser };
+          }
+        }
+        this.save();
       } catch {
         this.data = getDefaultDB();
         this.save();
@@ -247,6 +406,13 @@ class Database {
   public saveLearner(learner: LearnerProfile) {
     this.data.learners[learner.id] = learner;
     this.save();
+  }
+
+  public deleteLearner(id: string) {
+    if (this.data.learners[id]) {
+      delete this.data.learners[id];
+      this.save();
+    }
   }
 
   public getCurriculum(): DayCurriculum[] {

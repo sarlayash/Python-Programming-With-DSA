@@ -157,6 +157,171 @@ export const INITIAL_EARNED_BADGES: EarnedBadge[] = [
   }
 ];
 
+export const INITIAL_FIREBASE_USERS: LearnerProfile[] = [
+  {
+    id: 'usr_kapil_01',
+    name: 'Kapil Narula',
+    email: 'kapilnarula27july@gmail.com',
+    googleId: 'gid_kapil_narula_01',
+    photo: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+    registrationDate: '2026-09-16T03:00:00.000Z',
+    lastLogin: new Date().toISOString(),
+    loginCount: 14,
+    lastActive: new Date().toISOString(),
+    currentDay: 'T1',
+    completedDays: ['T1', 'T2', 'T3', 'T4'],
+    solvedProblems: ['p-56', 'p-58', 'p-60', 'p-62'],
+    attemptedProblems: ['p-56', 'p-57', 'p-58', 'p-60', 'p-62'],
+    streak: 4,
+    accountStatus: 'active',
+    revealedProblems: []
+  },
+  {
+    id: 'usr_LvNLjIda',
+    name: 'Shreya (2025PCEACS157)',
+    email: '2025pceacsshreya157@gmail.com',
+    googleId: 'LvNLjIdaQDcfWsRTVgYVfYAwQx2',
+    photo: '',
+    registrationDate: '2026-09-16T03:20:00.000Z',
+    lastLogin: '2026-09-16T03:20:00.000Z',
+    loginCount: 2,
+    lastActive: new Date().toISOString(),
+    currentDay: 'T1',
+    completedDays: ['T1'],
+    solvedProblems: ['p-56'],
+    attemptedProblems: ['p-56'],
+    streak: 1,
+    accountStatus: 'active',
+    revealedProblems: []
+  },
+  {
+    id: 'usr_e7dtuqRq',
+    name: 'Yuvraj (2025PCEACS188)',
+    email: '2025pceacsyuvraj188@gmail.com',
+    googleId: 'e7dtuqRq3yShryzAnN4hIYwgi7R2',
+    photo: '',
+    registrationDate: '2026-09-16T03:18:00.000Z',
+    lastLogin: '2026-09-16T03:18:00.000Z',
+    loginCount: 2,
+    lastActive: new Date().toISOString(),
+    currentDay: 'T1',
+    completedDays: ['T1'],
+    solvedProblems: ['p-56', 'p-58'],
+    attemptedProblems: ['p-56', 'p-58'],
+    streak: 1,
+    accountStatus: 'active',
+    revealedProblems: []
+  },
+  {
+    id: 'usr_qSCHDc97',
+    name: 'Samruddhi (2025PCEACS)',
+    email: '2025pceacssamruddhi@gmail.com',
+    googleId: 'qSCHDc97WcbWpqPl9ZH109mK8u1',
+    photo: '',
+    registrationDate: '2026-09-16T03:17:00.000Z',
+    lastLogin: '2026-09-16T03:17:00.000Z',
+    loginCount: 1,
+    lastActive: new Date().toISOString(),
+    currentDay: 'T1',
+    completedDays: [],
+    solvedProblems: [],
+    attemptedProblems: ['p-56'],
+    streak: 1,
+    accountStatus: 'active',
+    revealedProblems: []
+  },
+  {
+    id: 'usr_xFNitG6S',
+    name: 'Suhani Sethiya',
+    email: 'suhanisethiya1610@gmail.com',
+    googleId: 'xFNitG6SG1gfHdBfHitux6UjV3e2',
+    photo: '',
+    registrationDate: '2026-09-16T03:15:00.000Z',
+    lastLogin: '2026-09-16T03:15:00.000Z',
+    loginCount: 3,
+    lastActive: new Date().toISOString(),
+    currentDay: 'T2',
+    completedDays: ['T1'],
+    solvedProblems: ['p-56', 'p-57'],
+    attemptedProblems: ['p-56', 'p-57'],
+    streak: 2,
+    accountStatus: 'active',
+    revealedProblems: []
+  },
+  {
+    id: 'usr_x6efSB3n',
+    name: 'Vinayak Sh',
+    email: 'vinayakshhh2007@gmail.com',
+    googleId: 'x6efSB3nSsSmXzBVI5zZlDNI8po1',
+    photo: '',
+    registrationDate: '2026-09-16T03:12:00.000Z',
+    lastLogin: '2026-09-16T03:12:00.000Z',
+    loginCount: 2,
+    lastActive: new Date().toISOString(),
+    currentDay: 'T1',
+    completedDays: ['T1'],
+    solvedProblems: ['p-56'],
+    attemptedProblems: ['p-56', 'p-58'],
+    streak: 1,
+    accountStatus: 'active',
+    revealedProblems: []
+  },
+  {
+    id: 'usr_6DLRMRjV',
+    name: 'Sulekha Kumari',
+    email: 'sulekhakumari96546@gmail.com',
+    googleId: '6DLRMRjVLfUrl6jU4OhW51iV7kL2',
+    photo: '',
+    registrationDate: '2026-09-16T03:10:00.000Z',
+    lastLogin: '2026-09-16T03:10:00.000Z',
+    loginCount: 2,
+    lastActive: new Date().toISOString(),
+    currentDay: 'T1',
+    completedDays: [],
+    solvedProblems: ['p-56'],
+    attemptedProblems: ['p-56'],
+    streak: 1,
+    accountStatus: 'active',
+    revealedProblems: []
+  },
+  {
+    id: 'usr_4g7IMNUJ',
+    name: 'Vaishnavi',
+    email: 'vaishnavi020230@gmail.com',
+    googleId: '4g7IMNUJmqeIQ9LLIBBYV98mRt2',
+    photo: '',
+    registrationDate: '2026-09-16T03:08:00.000Z',
+    lastLogin: '2026-09-16T03:08:00.000Z',
+    loginCount: 2,
+    lastActive: new Date().toISOString(),
+    currentDay: 'T1',
+    completedDays: ['T1'],
+    solvedProblems: ['p-56'],
+    attemptedProblems: ['p-56'],
+    streak: 1,
+    accountStatus: 'active',
+    revealedProblems: []
+  },
+  {
+    id: 'usr_1l75wDnO',
+    name: 'Y.S. Sarda',
+    email: 'yssarda8875@gmail.com',
+    googleId: '1l75wDnO5DQtDj4cGdUXTBIzxO9',
+    photo: '',
+    registrationDate: '2026-09-16T03:05:00.000Z',
+    lastLogin: '2026-09-16T03:05:00.000Z',
+    loginCount: 2,
+    lastActive: new Date().toISOString(),
+    currentDay: 'T1',
+    completedDays: ['T1'],
+    solvedProblems: ['p-56', 'p-58'],
+    attemptedProblems: ['p-56', 'p-58'],
+    streak: 2,
+    accountStatus: 'active',
+    revealedProblems: []
+  }
+];
+
 export interface ClientDB {
   adminConfig: {
     adminId: string;
@@ -174,31 +339,16 @@ export interface ClientDB {
 }
 
 function getInitialDB(): ClientDB {
+  const learnersMap: Record<string, LearnerProfile> = {};
+  for (const u of INITIAL_FIREBASE_USERS) {
+    learnersMap[u.id] = { ...u };
+  }
   return {
     adminConfig: {
       adminId: 'KAPILADMIN',
       passwordHash: 'ADMIN123'
     },
-    learners: {
-      'usr_kapil_01': {
-        id: 'usr_kapil_01',
-        name: 'Kapil Narula',
-        email: 'kapilnarula27july@gmail.com',
-        googleId: 'gid_kapil_narula_01',
-        photo: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
-        registrationDate: new Date(Date.now() - 86400000 * 3).toISOString(),
-        lastLogin: new Date().toISOString(),
-        loginCount: 5,
-        lastActive: new Date().toISOString(),
-        currentDay: 'T1',
-        completedDays: ['T1'],
-        solvedProblems: ['p-56'],
-        attemptedProblems: ['p-56'],
-        streak: 3,
-        accountStatus: 'active',
-        revealedProblems: []
-      }
-    },
+    learners: learnersMap,
     curriculum: INITIAL_CURRICULUM,
     problems: INITIAL_PROBLEMS,
     submissions: [],
@@ -277,6 +427,16 @@ export function loadClientDB(): ClientDB {
       tipsAndTricks: fresh?.tipsAndTricks || day.tipsAndTricks || []
     };
   });
+
+  // Ensure all Firebase authenticated users exist in client registry
+  if (!db.learners) {
+    db.learners = {};
+  }
+  for (const fbUser of INITIAL_FIREBASE_USERS) {
+    if (!db.learners[fbUser.id]) {
+      db.learners[fbUser.id] = { ...fbUser };
+    }
+  }
 
   saveClientDB(db);
   return db;

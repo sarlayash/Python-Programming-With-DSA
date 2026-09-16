@@ -563,6 +563,93 @@ export const api = {
     return api.getLearners();
   },
 
+  syncLearners: async (learners: LearnerProfile[]) => {
+    try {
+      return await request<{ success: boolean; count: number; learners: LearnerProfile[] }>('/api/admin/learners/sync', {
+        method: 'POST',
+        body: JSON.stringify({ learners })
+      });
+    } catch {
+      const db = loadClientDB();
+      for (const l of learners) {
+        if (l && l.id) {
+          db.learners[l.id] = l;
+        }
+      }
+      saveClientDB(db);
+      return { success: true, count: Object.keys(db.learners).length, learners: Object.values(db.learners) };
+    }
+  },
+
+  addLearner: async (learnerData: { name: string; email: string; googleId?: string; currentDay?: string }) => {
+    try {
+      const res = await request<{ success: boolean; learner: LearnerProfile }>('/api/admin/learners/add', {
+        method: 'POST',
+        body: JSON.stringify(learnerData)
+      });
+      return res.learner;
+    } catch {
+      const db = loadClientDB();
+      const id = 'usr_' + Math.random().toString(36).substring(2, 9);
+      const now = new Date().toISOString();
+      const newL: LearnerProfile = {
+        id,
+        name: learnerData.name,
+        email: learnerData.email,
+        googleId: learnerData.googleId || 'gid_' + Math.random().toString(36).substring(2),
+        photo: '',
+        registrationDate: now,
+        lastLogin: now,
+        loginCount: 1,
+        lastActive: now,
+        currentDay: learnerData.currentDay || 'T1',
+        completedDays: [],
+        solvedProblems: [],
+        attemptedProblems: [],
+        streak: 1,
+        accountStatus: 'active',
+        revealedProblems: []
+      };
+      db.learners[id] = newL;
+      saveClientDB(db);
+      return newL;
+    }
+  },
+
+  updateLearner: async (id: string, updates: Partial<LearnerProfile>) => {
+    try {
+      const res = await request<{ success: boolean; learner: LearnerProfile }>(`/api/admin/learners/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates)
+      });
+      return res.learner;
+    } catch {
+      const db = loadClientDB();
+      if (db.learners[id]) {
+        db.learners[id] = { ...db.learners[id], ...updates };
+        saveClientDB(db);
+        return db.learners[id];
+      }
+      throw new Error('Learner not found');
+    }
+  },
+
+  deleteLearner: async (id: string) => {
+    try {
+      await request<{ success: boolean; id: string }>(`/api/admin/learners/${id}`, {
+        method: 'DELETE'
+      });
+      return true;
+    } catch {
+      const db = loadClientDB();
+      if (db.learners[id]) {
+        delete db.learners[id];
+        saveClientDB(db);
+      }
+      return true;
+    }
+  },
+
   getSubmissions: async () => {
     try {
       return await request<Submission[]>('/api/admin/submissions');

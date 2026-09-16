@@ -10,6 +10,17 @@ import {
   User as FirebaseUser,
   Auth
 } from 'firebase/auth';
+import {
+  getFirestore,
+  collection,
+  doc,
+  setDoc,
+  getDocs,
+  onSnapshot,
+  Firestore,
+  Unsubscribe
+} from 'firebase/firestore';
+import { LearnerProfile } from '../types';
 
 export interface FirebaseConfig {
   apiKey: string;
@@ -70,6 +81,31 @@ export function getActiveFirebaseConfig(): FirebaseConfig {
 
 let appInstance: FirebaseApp | null = null;
 let authInstance: Auth | null = null;
+let firestoreInstance: Firestore | null = null;
+
+export function getFirebaseFirestore(): Firestore | null {
+  const cfg = getActiveFirebaseConfig();
+  if (!cfg.apiKey || !cfg.projectId) {
+    return null;
+  }
+
+  try {
+    if (!appInstance) {
+      if (!getApps().length) {
+        appInstance = initializeApp(cfg);
+      } else {
+        appInstance = getApp();
+      }
+    }
+    if (!firestoreInstance && appInstance) {
+      firestoreInstance = getFirestore(appInstance);
+    }
+    return firestoreInstance;
+  } catch (err) {
+    console.warn('Firestore initialization notice:', err);
+    return null;
+  }
+}
 
 export function getFirebaseAuth(): Auth | null {
   const cfg = getActiveFirebaseConfig();
@@ -185,3 +221,108 @@ export async function logoutFromFirebase(): Promise<void> {
     await firebaseSignOut(auth).catch(() => {});
   }
 }
+
+/**
+ * Persists / updates a learner profile in Firestore 'learners' collection
+ */
+export async function syncLearnerToFirestore(learner: LearnerProfile): Promise<boolean> {
+  const firestore = getFirebaseFirestore();
+  if (!firestore) return false;
+
+  try {
+    const docId = learner.googleId || learner.id;
+    const docRef = doc(firestore, 'learners', docId);
+    await setDoc(docRef, {
+      ...learner,
+      firestoreSyncedAt: new Date().toISOString()
+    }, { merge: true });
+    return true;
+  } catch (err) {
+    console.warn('Firestore syncLearnerToFirestore notice:', err);
+    return false;
+  }
+}
+
+/**
+ * Bulk seeds all given learners into Firestore if connected
+ */
+export async function seedAllLearnersToFirestore(learners: LearnerProfile[]): Promise<number> {
+  const firestore = getFirebaseFirestore();
+  if (!firestore) return 0;
+
+  let count = 0;
+  try {
+    for (const learner of learners) {
+      const docId = learner.googleId || learner.id;
+      const docRef = doc(firestore, 'learners', docId);
+      await setDoc(docRef, {
+        ...learner,
+        firestoreSyncedAt: new Date().toISOString()
+      }, { merge: true });
+      count++;
+    }
+  } catch (err) {
+    console.warn('Firestore seedAllLearnersToFirestore notice:', err);
+  }
+  return count;
+}
+
+/**
+ * Fetches all learners currently present in Firestore
+ */
+export async function fetchAllFirestoreLearners(): Promise<LearnerProfile[]> {
+  const firestore = getFirebaseFirestore();
+  if (!firestore) return [];
+
+  try {
+    const colRef = collection(firestore, 'learners');
+    const snapshot = await getDocs(colRef);
+    const learners: LearnerProfile[] = [];
+    snapshot.forEach(docSnap => {
+      const data = docSnap.data() as LearnerProfile;
+      learners.push(data);
+    });
+    return learners;
+  } catch (err) {
+    console.warn('Firestore fetchAllFirestoreLearners notice:', err);
+    return [];
+  }
+}
+
+/**
+ * Subscribes to real-time changes of the 'learners' collection in Firestore.
+ * Automatically triggers onData callback whenever any user is created or updated.
+ */
+export function subscribeToFirestoreLearners(
+  onData: (learners: LearnerProfile[]) => void,
+  onError?: (err: any) => void
+): Unsubscribe | null {
+  const firestore = getFirebaseFirestore();
+  if (!firestore) return null;
+
+  try {
+    const colRef = collection(firestore, 'learners');
+    const unsubscribe = onSnapshot(
+      colRef,
+      (snapshot) => {
+        const learners: LearnerProfile[] = [];
+        snapshot.forEach(docSnap => {
+          learners.push(docSnap.data() as LearnerProfile);
+        });
+        if (learners.length > 0) {
+          onData(learners);
+        }
+      },
+      (error) => {
+        console.warn('Firestore real-time subscription error:', error);
+        if (onError) onError(error);
+      }
+    );
+    return unsubscribe;
+  } catch (err) {
+    console.warn('Failed to subscribe to Firestore learners:', err);
+    if (onError) onError(err);
+    return null;
+  }
+}
+
