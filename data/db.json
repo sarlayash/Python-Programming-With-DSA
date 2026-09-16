@@ -9,7 +9,7 @@
       "name": "Kapil Narula",
       "email": "kapilnarula27july@gmail.com",
       "googleId": "gid_kapil_narula_01",
-      "photo": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80",
+      "photo": "",
       "registrationDate": "2026-09-16T03:00:00.000Z",
       "lastLogin": "2026-09-16T03:33:49.751Z",
       "loginCount": 14,
@@ -43,7 +43,7 @@
       "name": "New Learner",
       "email": "newlearner@gmail.com",
       "googleId": "gid_cxr8f1mtpho",
-      "photo": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80",
+      "photo": "",
       "registrationDate": "2026-09-15T15:22:41.487Z",
       "lastLogin": "2026-09-15T15:22:45.649Z",
       "loginCount": 2,
@@ -61,7 +61,7 @@
       "name": "DSA Student",
       "email": "student99@gmail.com",
       "googleId": "gid_8jg8uc4lar3",
-      "photo": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80",
+      "photo": "",
       "registrationDate": "2026-09-15T15:34:08.400Z",
       "lastLogin": "2026-09-15T15:34:08.400Z",
       "loginCount": 1,
@@ -79,7 +79,7 @@
       "name": "Test User",
       "email": "testuser@gmail.com",
       "googleId": "gid_wo0m53g92qs",
-      "photo": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80",
+      "photo": "",
       "registrationDate": "2026-09-15T15:42:53.828Z",
       "lastLogin": "2026-09-15T15:42:53.828Z",
       "loginCount": 1,
@@ -1871,7 +1871,25 @@
       "icon": "Sparkles"
     }
   ],
-  "certificates": [],
+  "certificates": [
+    {
+      "certificateId": "CERT-KAPIL-ENTERPRISE-8910",
+      "learnerId": "usr_kapil_01",
+      "learnerName": "Kapil Narula",
+      "learnerEmail": "kapilnarula27july@gmail.com",
+      "courseTitle": "Python Programming With DSA",
+      "subtitle": "Powered By Kapil",
+      "issuedDate": "September 15, 2026",
+      "status": "issued",
+      "verificationUrl": "/verify/cert/CERT-KAPIL-ENTERPRISE-8910",
+      "grade": "Executive Honors (Enterprise Distinction)",
+      "completionSummary": {
+        "totalSolved": 8,
+        "totalAttempted": 10,
+        "daysCompleted": 4
+      }
+    }
+  ],
   "notifications": [
     {
       "id": "notif-1789486973829",
