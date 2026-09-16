@@ -42,7 +42,14 @@ export interface FundamentalsCodingProblem {
   starterCode: string;
   solutionCode: string;
   explanation: string;
-  testCases: { input: string; expectedOutput: string; isHidden?: boolean }[];
+  testCases: {
+    input: string;
+    expectedOutput: string;
+    inputData?: string;
+    parameters?: Record<string, any>;
+    testCode?: string;
+    isHidden?: boolean;
+  }[];
   hints: string[];
 }
 

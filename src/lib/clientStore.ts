@@ -12,6 +12,7 @@ import {
   AdminOverviewStats
 } from '../types';
 import { getVerificationUrl, generateHighContrastQR } from './verification';
+import { fallbackExecutePython } from './pyodideRunner';
 
 const STORE_KEY = 'kapil_dsa_client_db_v1';
 const TOKEN_KEY = 'kapil_dsa_auth_token';
@@ -631,39 +632,7 @@ export function clientExecutePython(code: string, inputStr: string = ''): {
   executionTimeMs: number;
   timedOut: boolean;
 } {
-  const start = Date.now();
-  let output = '';
-  let errorMsg = '';
-
-  try {
-    const prints: string[] = [];
-    const printMatches = code.matchAll(/print\s*\((.*?)\)/g);
-    for (const match of printMatches) {
-      const content = match[1].trim();
-      if (content.includes('*')) {
-        try {
-          const evaluated = Function(`"use strict"; return (${content});`)();
-          prints.push(String(evaluated));
-        } catch {
-          prints.push(content.replace(/['"]/g, ''));
-        }
-      } else {
-        prints.push(content.replace(/['"]/g, ''));
-      }
-    }
-
-    output = prints.length > 0 ? prints.join('\n') + '\n' : 'Executed successfully.\n';
-  } catch (err: any) {
-    errorMsg = err.message || 'Execution error';
-  }
-
-  return {
-    stdout: output,
-    stderr: errorMsg,
-    exitCode: errorMsg ? 1 : 0,
-    executionTimeMs: Date.now() - start,
-    timedOut: false
-  };
+  return fallbackExecutePython(code, inputStr);
 }
 
 // Client-side Code Submission & Problem Grader

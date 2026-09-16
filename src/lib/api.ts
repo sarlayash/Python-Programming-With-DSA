@@ -25,6 +25,7 @@ import {
 } from './clientStore';
 import { INITIAL_BADGES } from '../../server/curriculumData';
 import { getVerificationUrl } from './verification';
+import { runWithPyodide, fallbackExecutePython } from './pyodideRunner';
 
 const TOKEN_KEY = 'kapil_dsa_auth_token';
 
@@ -190,7 +191,11 @@ export const api = {
         body: JSON.stringify({ code, input })
       });
     } catch {
-      return clientExecutePython(code, input);
+      try {
+        return await runWithPyodide(code, input);
+      } catch {
+        return fallbackExecutePython(code, input);
+      }
     }
   },
 

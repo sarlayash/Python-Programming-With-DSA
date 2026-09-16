@@ -87,6 +87,8 @@ export const PythonFundamentalsView: React.FC<PythonFundamentalsViewProps> = ({
     problemId: string;
     tests: {
       input: string;
+      inputData?: string;
+      parameters?: Record<string, any>;
       expected: string;
       actual: string;
       passed: boolean;
@@ -216,6 +218,69 @@ export const PythonFundamentalsView: React.FC<PythonFundamentalsViewProps> = ({
     }
   };
 
+  // Robust comparison between Python test actual return output and expected string
+  const checkEquivalence = (actual: string, expected: string): boolean => {
+    const normA = actual.trim();
+    const normE = expected.trim();
+    if (normA === normE) return true;
+
+    // Case-insensitive string match
+    if (normA.toLowerCase() === normE.toLowerCase()) return true;
+
+    // Strip wrapping quotes: '"Freezing"' vs 'Freezing' or "'Freezing'"
+    const stripQuotes = (s: string) => s.replace(/^['"]+|['"]+$/g, '').trim();
+    if (stripQuotes(normA) === stripQuotes(normE)) return true;
+
+    // Boolean match: Python True / False vs JSON true / false
+    if (
+      (normA === 'True' && (normE === 'true' || normE === 'True')) ||
+      (normA === 'False' && (normE === 'false' || normE === 'False')) ||
+      (normA === 'true' && (normE === 'true' || normE === 'True')) ||
+      (normA === 'false' && (normE === 'false' || normE === 'False'))
+    ) {
+      return true;
+    }
+
+    // Numbers: with float epsilon precision tolerance
+    const numA = Number(normA);
+    const numE = Number(normE);
+    if (!isNaN(numA) && !isNaN(numE)) {
+      return Math.abs(numA - numE) < 0.01;
+    }
+
+    // JSON structure comparison (handles key order and nested lists)
+    try {
+      const jsonA = JSON.parse(normA);
+      const jsonE = JSON.parse(normE);
+      if (JSON.stringify(jsonA) === JSON.stringify(jsonE)) return true;
+    } catch {
+      // ignore json parse errors
+    }
+
+    // Tuple vs List or dictionary string formatting normalization
+    const normalizeRepr = (s: string) =>
+      s
+        .replace(/[\(\)\[\]\{\}]/g, '')
+        .replace(/['"]/g, '')
+        .replace(/\s+/g, '')
+        .toLowerCase();
+
+    if (normalizeRepr(normA) === normalizeRepr(normE)) {
+      return true;
+    }
+
+    return false;
+  };
+
+  // Handle inserting a test call directly into the student's editor
+  const handleInsertTestCase = (tcInput: string) => {
+    const callSnippet = `\n\n# --- Test Call ---\nprint(${tcInput})\n`;
+    setEditorCodes(prev => ({
+      ...prev,
+      [currentProblem.id]: (prev[currentProblem.id] ?? currentProblem.starterCode) + callSnippet
+    }));
+  };
+
   // Handle Testing all cases for the current problem
   const handleTestAllCases = async () => {
     setIsTestingCases(true);
@@ -223,6 +288,8 @@ export const PythonFundamentalsView: React.FC<PythonFundamentalsViewProps> = ({
     try {
       const results: {
         input: string;
+        inputData?: string;
+        parameters?: Record<string, any>;
         expected: string;
         actual: string;
         passed: boolean;
@@ -232,26 +299,66 @@ export const PythonFundamentalsView: React.FC<PythonFundamentalsViewProps> = ({
       let allPassed = true;
 
       for (const tc of currentProblem.testCases) {
-        // Construct runnable python probe: define code then print eval(input)
-        const harness = `${currentCode}\n\n# Probe Test Case\ntry:\n    _res = ${tc.input}\n    print(_res)\nexcept Exception as _e:\n    print(f"ERROR: {_e}")`;
+        // Construct isolated Python test harness
+        let testBody = '';
+        if (tc.testCode) {
+          testBody = tc.testCode
+            .split('\n')
+            .map(line => '    ' + line)
+            .join('\n');
+        } else {
+          testBody = `    return (${tc.input})`;
+        }
+
+        const harness = `${currentCode}
+
+# === Isolated Python Test Harness ===
+def __py_eval_test_case():
+${testBody}
+
+try:
+    _raw_res = __py_eval_test_case()
+    import json
+    try:
+        _ser = json.dumps(_raw_res)
+    except Exception:
+        _ser = repr(_raw_res)
+    print(f"__PY_TEST_RES_START__{_ser}__PY_TEST_RES_END__")
+except Exception as _exc:
+    print(f"__PY_TEST_ERR_START__{_exc}__PY_TEST_ERR_END__")
+`;
+
         const res = await api.runCode(harness);
+        const stdout = res.stdout || '';
 
-        const actualNormalized = (res.stdout || '').trim();
-        // Remove quotes around string representation or boolean case matching
-        const expectedNormalized = tc.expectedOutput.trim();
+        let actualStr = '';
+        let hasError = false;
 
-        // Check equivalence
-        const passed =
-          actualNormalized === expectedNormalized ||
-          actualNormalized.toLowerCase() === expectedNormalized.toLowerCase() ||
-          actualNormalized.replace(/['"]/g, '') === expectedNormalized.replace(/['"]/g, '');
+        const resMatch = stdout.match(/__PY_TEST_RES_START__([\s\S]*?)__PY_TEST_RES_END__/);
+        const errMatch = stdout.match(/__PY_TEST_ERR_START__([\s\S]*?)__PY_TEST_ERR_END__/);
+
+        if (errMatch) {
+          actualStr = `Error: ${errMatch[1].trim()}`;
+          hasError = true;
+        } else if (resMatch) {
+          actualStr = resMatch[1].trim();
+        } else if (res.stderr) {
+          actualStr = `Runtime Error: ${res.stderr.trim()}`;
+          hasError = true;
+        } else {
+          actualStr = stdout.trim() || 'None';
+        }
+
+        const passed = !hasError && checkEquivalence(actualStr, tc.expectedOutput);
 
         if (!passed) allPassed = false;
 
         results.push({
           input: tc.input,
+          inputData: tc.inputData,
+          parameters: tc.parameters,
           expected: tc.expectedOutput,
-          actual: actualNormalized || (res.stderr ? `Error: ${res.stderr}` : 'None'),
+          actual: actualStr,
           passed,
           timeMs: res.executionTimeMs
         });
@@ -884,25 +991,87 @@ export const PythonFundamentalsView: React.FC<PythonFundamentalsViewProps> = ({
                     {currentProblem.description}
                   </div>
 
-                  {/* Predefined Test Cases Table */}
-                  <div className="space-y-2 pt-2 border-t border-slate-100">
-                    <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
-                      Target Test Cases:
-                    </span>
-                    <div className="rounded-lg border border-slate-200 overflow-hidden text-xs">
-                      <div className="bg-slate-50 px-3 py-1.5 font-bold text-slate-600 grid grid-cols-2 text-[10px] uppercase border-b border-slate-200">
-                        <span>Input Call</span>
-                        <span>Expected Output</span>
-                      </div>
+                  {/* Predefined Test Cases & Clear Input Data */}
+                  <div className="space-y-3 pt-3 border-t border-slate-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                        <Terminal className="w-3.5 h-3.5 text-indigo-600" />
+                        Target Test Cases & Input Data ({currentProblem.testCases.length})
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-semibold">
+                        Evaluated on 'Test All Cases'
+                      </span>
+                    </div>
+
+                    <div className="space-y-2.5">
                       {currentProblem.testCases.map((tc, idx) => (
                         <div
                           key={idx}
-                          className="px-3 py-1.5 grid grid-cols-2 gap-2 border-b border-slate-100 last:border-b-0 font-mono text-[11px]"
+                          className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 text-xs space-y-2 hover:border-slate-300 transition-colors"
                         >
-                          <span className="text-indigo-700 truncate">{tc.input}</span>
-                          <span className="text-emerald-700 font-bold truncate">
-                            {tc.expectedOutput}
-                          </span>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-2 py-0.5 rounded">
+                              Test Case {idx + 1}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleInsertTestCase(tc.input)}
+                              className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 hover:underline"
+                              title="Append print() test call to editor"
+                            >
+                              <Play className="w-2.5 h-2.5" />
+                              <span>Append Call to Editor</span>
+                            </button>
+                          </div>
+
+                          {/* Explicit Input Data / Description */}
+                          {tc.inputData && (
+                            <div className="bg-white rounded border border-slate-200/90 p-2 text-[11px] text-slate-700 font-sans space-y-1">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block">
+                                Input Scenario & Data:
+                              </span>
+                              <div className="font-mono text-[11px] text-slate-800 leading-snug break-words">
+                                {tc.inputData}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Parameters breakdown if present */}
+                          {tc.parameters && Object.keys(tc.parameters).length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                              <span className="text-[9px] uppercase font-bold text-slate-500 mr-0.5">Parameters:</span>
+                              {Object.entries(tc.parameters).map(([key, val]) => (
+                                <span
+                                  key={key}
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-200/80 text-slate-800 font-mono text-[10px]"
+                                >
+                                  <span className="font-bold text-slate-600">{key}:</span>
+                                  <span>{typeof val === 'object' ? JSON.stringify(val) : String(val)}</span>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Test Invocation & Expected Return */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-200/60 font-mono text-[11px]">
+                            <div className="space-y-0.5">
+                              <span className="text-[9px] font-sans uppercase font-bold text-slate-500 block">
+                                Function Call:
+                              </span>
+                              <code className="text-indigo-900 font-semibold block break-all bg-indigo-50/50 p-1.5 rounded border border-indigo-100">
+                                {tc.input}
+                              </code>
+                            </div>
+
+                            <div className="space-y-0.5">
+                              <span className="text-[9px] font-sans uppercase font-bold text-slate-500 block">
+                                Expected Return:
+                              </span>
+                              <code className="text-emerald-800 font-bold block break-all bg-emerald-50/60 p-1.5 rounded border border-emerald-100">
+                                {tc.expectedOutput}
+                              </code>
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1120,29 +1289,71 @@ export const PythonFundamentalsView: React.FC<PythonFundamentalsViewProps> = ({
                       </span>
                     </div>
 
-                    <div className="space-y-1.5 pt-1">
+                    <div className="space-y-2.5 pt-1">
                       {testResults.tests.map((t, idx) => (
                         <div
                           key={idx}
-                          className={`p-2.5 rounded-lg border flex items-center justify-between text-[11px] ${
+                          className={`p-3 rounded-lg border text-xs space-y-2 ${
                             t.passed
-                              ? 'bg-emerald-900/20 border-emerald-700/40 text-emerald-200'
-                              : 'bg-rose-900/20 border-rose-700/40 text-rose-200'
+                              ? 'bg-emerald-950/40 border-emerald-700/50 text-emerald-100'
+                              : 'bg-rose-950/40 border-rose-700/50 text-rose-100'
                           }`}
                         >
-                          <div className="space-y-0.5 truncate max-w-sm">
-                            <span className="font-bold">Test {idx + 1}: {t.input}</span>
-                            <div className="text-[10px] text-slate-400">
-                              Expected: <span className="text-slate-200 font-mono">{t.expected}</span> &bull; Actual: <span className="text-slate-200 font-mono">{t.actual}</span>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-xs">
+                                Test Case #{idx + 1}
+                              </span>
+                              {t.passed ? (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-500 text-slate-950">
+                                  PASS
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-rose-500 text-white">
+                                  FAIL
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-sans">
+                              {t.timeMs}ms
+                            </span>
+                          </div>
+
+                          {/* Clear Input Data description */}
+                          {t.inputData && (
+                            <div className="bg-slate-900/80 rounded p-2 text-[11px] border border-slate-800 text-slate-300 font-sans">
+                              <span className="text-[9px] uppercase font-bold text-slate-400 block">Input Scenario:</span>
+                              <span className="font-mono text-slate-200">{t.inputData}</span>
+                            </div>
+                          )}
+
+                          {/* Call vs Output side-by-side or stacked */}
+                          <div className="space-y-1 text-[11px] font-mono">
+                            <div className="text-slate-300 truncate">
+                              <span className="text-slate-400 font-sans text-[10px]">Call:</span>{' '}
+                              <span className="text-amber-200">{t.input}</span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                              <div className="bg-slate-900/90 rounded p-2 border border-slate-800">
+                                <span className="text-[9px] uppercase font-sans font-bold text-slate-400 block">
+                                  Expected:
+                                </span>
+                                <code className="text-emerald-400 font-bold block break-all">
+                                  {t.expected}
+                                </code>
+                              </div>
+
+                              <div className={`rounded p-2 border ${t.passed ? 'bg-slate-900/90 border-slate-800' : 'bg-rose-950/60 border-rose-800'}`}>
+                                <span className="text-[9px] uppercase font-sans font-bold text-slate-400 block">
+                                  Actual Returned:
+                                </span>
+                                <code className={`block break-all font-bold ${t.passed ? 'text-emerald-400' : 'text-rose-300'}`}>
+                                  {t.actual}
+                                </code>
+                              </div>
                             </div>
                           </div>
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              t.passed ? 'bg-emerald-500 text-slate-950' : 'bg-rose-500 text-white'
-                            }`}
-                          >
-                            {t.passed ? 'PASS' : 'FAIL'}
-                          </span>
                         </div>
                       ))}
                     </div>
