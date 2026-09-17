@@ -311,7 +311,15 @@ export const api = {
       const session = getClientSession();
       if (!session || session.role !== 'learner') return null;
       const db = loadClientDB();
-      return db.certificates.find(c => c.learnerId === session.user.id) || null;
+      const learner = db.learners[session.user.id];
+      if (!learner) return null;
+      const completedDaysCount = learner.completedDays?.length || 0;
+      const solvedCount = learner.solvedProblems?.length || 0;
+      // Strict zero-pending rule: certificate will not activate unless all 10 days and all tasks are completed
+      if (completedDaysCount < 10 || solvedCount < db.problems.length) {
+        return null;
+      }
+      return db.certificates.find(c => c.learnerId === session.user.id && c.status === 'issued') || null;
     }
   },
 
@@ -492,8 +500,16 @@ export const api = {
       const session = getClientSession();
       const db = loadClientDB();
       const learnerId = session?.user?.id || 'usr_kapil_01';
-      const learner = db.learners[learnerId] || { name: 'Kapil Narula', email: 'kapilnarula27july@gmail.com' };
-      let existing = db.certificates.find(c => c.learnerId === learnerId);
+      const learner = db.learners[learnerId] || { name: 'Kapil Narula', email: 'kapilnarula27july@gmail.com', completedDays: [], solvedProblems: [] };
+
+      // Zero pending tasks requirement: all 10 days and all problems must be completed
+      const completedDaysCount = learner.completedDays?.length || 0;
+      const solvedCount = learner.solvedProblems?.length || 0;
+      if (completedDaysCount < 10 || solvedCount < db.problems.length) {
+        throw new Error(`Cannot activate certificate: you still have ${db.problems.length - solvedCount} pending tasks remaining across ${10 - completedDaysCount} days.`);
+      }
+
+      let existing = db.certificates.find(c => c.learnerId === learnerId && c.status === 'issued');
       if (!existing) {
         const certId = `CERT-KAPIL-ENTERPRISE-${Math.floor(1000 + Math.random() * 9000)}`;
         existing = {
@@ -507,12 +523,73 @@ export const api = {
           status: 'issued',
           verificationUrl: getVerificationUrl('cert', certId),
           grade: 'Executive Honors (Enterprise Distinction)',
-          completionSummary: { totalSolved: 8, totalAttempted: 10, daysCompleted: 4 }
+          completionSummary: { totalSolved: db.problems.length, totalAttempted: db.problems.length, daysCompleted: 10 }
         };
         db.certificates.push(existing);
         saveClientDB(db);
       }
       return existing;
+    }
+  },
+
+  simulateCompleteAllTasks: async () => {
+    try {
+      return await request<{ success: boolean; learner: LearnerProfile; certificate: Certificate }>('/api/learner/simulate-completion', {
+        method: 'POST'
+      });
+    } catch {
+      const session = getClientSession();
+      const db = loadClientDB();
+      const learnerId = session?.user?.id || 'usr_kapil_01';
+      const learner = db.learners[learnerId] || db.learners['usr_kapil_01'];
+      if (learner) {
+        learner.completedDays = db.curriculum.map(d => d.code);
+        learner.solvedProblems = db.problems.map(p => p.id);
+        learner.attemptedProblems = db.problems.map(p => p.id);
+        
+        const certId = `CERT-KAPIL-ENTERPRISE-${Math.floor(1000 + Math.random() * 9000)}`;
+        const certificate: Certificate = {
+          certificateId: certId,
+          learnerId,
+          learnerName: learner.name,
+          learnerEmail: learner.email,
+          courseTitle: 'Python Programming With DSA',
+          subtitle: 'Powered By Kapil',
+          issuedDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+          status: 'issued',
+          verificationUrl: getVerificationUrl('cert', certId),
+          grade: 'Executive Honors (Enterprise Distinction)',
+          completionSummary: { totalSolved: db.problems.length, totalAttempted: db.problems.length, daysCompleted: 10 }
+        };
+        db.certificates = db.certificates.filter(c => c.learnerId !== learnerId);
+        db.certificates.push(certificate);
+        saveClientDB(db);
+
+        return { success: true, learner, certificate };
+      }
+      throw new Error('Learner not found');
+    }
+  },
+
+  simulateResetPendingTasks: async () => {
+    try {
+      return await request<{ success: boolean; learner: LearnerProfile }>('/api/learner/simulate-reset', {
+        method: 'POST'
+      });
+    } catch {
+      const session = getClientSession();
+      const db = loadClientDB();
+      const learnerId = session?.user?.id || 'usr_kapil_01';
+      const learner = db.learners[learnerId] || db.learners['usr_kapil_01'];
+      if (learner) {
+        learner.completedDays = ['T1', 'T2', 'T3', 'T4'];
+        learner.solvedProblems = ['p-56', 'p-58', 'p-60', 'p-62'];
+        learner.attemptedProblems = ['p-56', 'p-57', 'p-58', 'p-60', 'p-62'];
+        db.certificates = db.certificates.filter(c => c.learnerId !== learnerId);
+        saveClientDB(db);
+        return { success: true, learner };
+      }
+      throw new Error('Learner not found');
     }
   },
 

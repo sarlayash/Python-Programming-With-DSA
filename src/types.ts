@@ -300,7 +300,7 @@ export interface AppNotification {
   id: string;
   title: string;
   message: string;
-  type: 'curriculum' | 'submission' | 'badge' | 'certificate' | 'announcement' | 'system';
+  type: 'curriculum' | 'submission' | 'badge' | 'certificate' | 'announcement' | 'system' | 'reminder';
   targetUserId?: string; // or 'all'
   read: boolean;
   createdAt: string;

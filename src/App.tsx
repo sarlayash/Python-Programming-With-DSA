@@ -14,6 +14,9 @@ import { DebuggingLab } from './components/DebuggingLab';
 import { PythonFunFactsView } from './components/PythonFunFactsView';
 import { PythonFundamentalsView } from './components/PythonFundamentalsView';
 import { FinalAssessmentView } from './components/FinalAssessmentView';
+import { PushNotificationToast } from './components/PushNotificationToast';
+import { PushNotificationSettingsModal } from './components/PushNotificationSettingsModal';
+import { startReminderScheduler, triggerImmediateReminder } from './lib/reminderScheduler';
 import { api, setStoredToken, getStoredToken, clearStoredToken } from './lib/api';
 import { logoutFromFirebase, checkFirebaseRedirectResult } from './lib/firebase';
 import { parseVerificationTarget, ParsedVerificationTarget } from './lib/verification';
@@ -53,6 +56,47 @@ export default function App() {
   // Navigation Sidebar states
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+
+  // Real-time Push Notification state
+  const [isPushSettingsOpen, setIsPushSettingsOpen] = useState<boolean>(false);
+
+  // Real-time push reminder scheduler for learners
+  useEffect(() => {
+    const handleAddFeedNotification = (notif: { title: string; message: string; category?: string }) => {
+      const newNotif: AppNotification = {
+        id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+        title: notif.title,
+        message: notif.message,
+        createdAt: new Date().toISOString(),
+        read: false,
+        type: 'reminder'
+      };
+      setNotifications(prev => [newNotif, ...prev.slice(0, 19)]);
+    };
+
+    const stopScheduler = startReminderScheduler({
+      learner: currentUser,
+      curriculum,
+      problems,
+      onAddNotificationToFeed: handleAddFeedNotification
+    });
+
+    const handleCustomNavigate = (e: any) => {
+      if (e.detail?.tab) {
+        if (e.detail.problemId) {
+          setSelectedProblemId(e.detail.problemId);
+        }
+        setCurrentTab(e.detail.tab);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+    window.addEventListener('app:navigate', handleCustomNavigate as EventListener);
+
+    return () => {
+      stopScheduler();
+      window.removeEventListener('app:navigate', handleCustomNavigate as EventListener);
+    };
+  }, [currentUser, curriculum, problems]);
 
   // Listen to URL hash/query/path changes for instant verification routing
   useEffect(() => {
@@ -246,6 +290,26 @@ export default function App() {
     api.getNotifications().then(setNotifications).catch(() => {});
   };
 
+  const handleTriggerTestReminder = (customType?: any) => {
+    triggerImmediateReminder({
+      learner: userRole === 'learner' ? currentUser : null,
+      curriculum,
+      problems,
+      type: customType,
+      onAddNotificationToFeed: (notif) => {
+        const newNotif: AppNotification = {
+          id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+          title: notif.title,
+          message: notif.message,
+          createdAt: new Date().toISOString(),
+          read: false,
+          type: 'reminder'
+        };
+        setNotifications(prev => [newNotif, ...prev.slice(0, 19)]);
+      }
+    });
+  };
+
   const handleMarkNotificationRead = async (id: string) => {
     await api.markNotificationRead(id);
     setNotifications(prev =>
@@ -273,6 +337,8 @@ export default function App() {
           setCurrentTab(tab);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
+        onOpenPushSettings={() => setIsPushSettingsOpen(true)}
+        onTriggerTestPush={() => handleTriggerTestReminder()}
       />
 
       {/* App Body Layout: Left Navigation + Right Sections */}
@@ -334,6 +400,8 @@ export default function App() {
                     earnedBadges={earnedBadges}
                     onNavigate={handleNavigate}
                     onOpenAuth={() => handleOpenAuth('learner')}
+                    onOpenPushSettings={() => setIsPushSettingsOpen(true)}
+                    onTriggerTestPush={() => handleTriggerTestReminder()}
                   />
                 )}
 
@@ -426,10 +494,22 @@ export default function App() {
                   <CertificateView
                     certificate={certificate}
                     learner={userRole === 'learner' ? currentUser : null}
+                    curriculum={curriculum}
+                    problems={problems}
                     onOpenAuth={() => handleOpenAuth('learner')}
                     onCertificateUpdated={(updated) => setCertificate(updated)}
                     onNavigateToVerify={(certId) => {
                       setVerifyTarget({ type: 'cert', id: certId });
+                    }}
+                    onNavigateToTab={(tab, contextId) => {
+                      if (tab === 'ide' && contextId) {
+                        setSelectedProblemId(contextId);
+                      }
+                      setCurrentTab(tab);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    onUpdateLearner={(updated) => {
+                      setCurrentUser(updated);
                     }}
                   />
                 )}
@@ -519,6 +599,27 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Real-time Push Notification Toast Overlay */}
+      <PushNotificationToast
+        onNavigate={(tab, pId) => {
+          if (tab === 'ide' && pId) {
+            setSelectedProblemId(pId);
+          }
+          setCurrentTab(tab);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onOpenSettings={() => setIsPushSettingsOpen(true)}
+      />
+
+      {/* Real-time Push Notification Preferences & History Modal */}
+      <PushNotificationSettingsModal
+        isOpen={isPushSettingsOpen}
+        onClose={() => setIsPushSettingsOpen(false)}
+        onTriggerTestReminder={handleTriggerTestReminder}
+        notifications={notifications}
+        onMarkNotificationRead={handleMarkNotificationRead}
+      />
     </div>
   );
 }

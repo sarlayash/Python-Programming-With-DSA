@@ -685,10 +685,21 @@ app.get('/api/badges/my', (req, res) => {
 app.get('/api/certificates/my', (req, res) => {
   const user = (req as any).user;
   const learnerId = user ? user.id : 'usr_kapil_01';
-  let cert = db.getCertificateForLearner(learnerId);
-  if (!cert && learnerId === 'usr_kapil_01') {
-    cert = db.getCertificateById('CERT-KAPIL-ENTERPRISE-8910');
+  const learner = db.getLearnerById(learnerId);
+  const curriculum = db.getCurriculum();
+  const problems = db.getProblems();
+
+  const completedDays = learner?.completedDays || [];
+  const solvedProblems = new Set(learner?.solvedProblems || []);
+  const pendingProblems = problems.filter(p => !solvedProblems.has(p.id));
+  const allDaysComplete = curriculum.length > 0 && curriculum.every(d => completedDays.includes(d.code));
+
+  // Strict zero-pending rule: certificate will not activate unless all tasks, days, and levels are completed
+  if (!allDaysComplete || pendingProblems.length > 0) {
+    return res.json(null);
   }
+
+  let cert = db.getCertificateForLearner(learnerId);
   res.json(cert || null);
 });
 
@@ -697,6 +708,23 @@ app.post('/api/certificates/claim', (req, res) => {
   const user = (req as any).user;
   const learnerId = user ? user.id : 'usr_kapil_01';
   const learner = db.getLearnerById(learnerId);
+  const curriculum = db.getCurriculum();
+  const problems = db.getProblems();
+
+  const completedDays = learner?.completedDays || [];
+  const solvedProblems = new Set(learner?.solvedProblems || []);
+  const pendingProblems = problems.filter(p => !solvedProblems.has(p.id));
+  const allDaysComplete = curriculum.length > 0 && curriculum.every(d => completedDays.includes(d.code));
+
+  if (!allDaysComplete || pendingProblems.length > 0) {
+    return res.status(403).json({
+      success: false,
+      message: `Final certificate will not activate unless all tasks, days, and levels are completed. You have ${pendingProblems.length} pending tasks remaining.`,
+      pendingDays: curriculum.filter(d => !completedDays.includes(d.code)).map(d => d.code),
+      pendingTasksCount: pendingProblems.length
+    });
+  }
+
   const learnerName = learner ? learner.name : (user?.name || 'Kapil Narula');
   const learnerEmail = learner ? learner.email : (user?.email || 'kapilnarula27july@gmail.com');
 
@@ -715,14 +743,75 @@ app.post('/api/certificates/claim', (req, res) => {
       verificationUrl: `/verify/cert/${certId}`,
       grade: 'Executive Honors (Enterprise Distinction)',
       completionSummary: {
-        totalSolved: learner?.solvedProblems?.length || 8,
-        totalAttempted: learner?.attemptedProblems?.length || 10,
-        daysCompleted: learner?.completedDays?.length || 4
+        totalSolved: problems.length,
+        totalAttempted: problems.length,
+        daysCompleted: curriculum.length
       }
     };
     db.issueCertificate(existing);
   }
   res.json({ success: true, certificate: existing });
+});
+
+// Simulation route: 100% completion of all tasks & days
+app.post('/api/learner/simulate-completion', (req, res) => {
+  const user = (req as any).user;
+  const learnerId = user ? user.id : 'usr_kapil_01';
+  const learner = db.getLearnerById(learnerId);
+  const curriculum = db.getCurriculum();
+  const problems = db.getProblems();
+
+  if (learner) {
+    learner.completedDays = curriculum.map(d => d.code);
+    learner.solvedProblems = problems.map(p => p.id);
+    learner.attemptedProblems = problems.map(p => p.id);
+    db.saveLearner(learner);
+
+    let existing = db.getCertificateForLearner(learnerId);
+    if (!existing) {
+      const certId = `CERT-KAPIL-ENTERPRISE-${Math.floor(1000 + Math.random() * 9000)}`;
+      existing = {
+        certificateId: certId,
+        learnerId,
+        learnerName: learner.name,
+        learnerEmail: learner.email,
+        courseTitle: 'Python Programming With DSA',
+        subtitle: 'Powered By Kapil',
+        issuedDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+        status: 'issued',
+        verificationUrl: `/verify/cert/${certId}`,
+        grade: 'Executive Honors (Enterprise Distinction)',
+        completionSummary: {
+          totalSolved: problems.length,
+          totalAttempted: problems.length,
+          daysCompleted: curriculum.length
+        }
+      };
+      db.issueCertificate(existing);
+    }
+    return res.json({ success: true, learner, certificate: existing });
+  }
+  res.status(404).json({ error: 'Learner not found' });
+});
+
+// Simulation route: reset to incomplete with pending tasks
+app.post('/api/learner/simulate-reset', (req, res) => {
+  const user = (req as any).user;
+  const learnerId = user ? user.id : 'usr_kapil_01';
+  const learner = db.getLearnerById(learnerId);
+  if (learner) {
+    learner.completedDays = ['T1', 'T2', 'T3', 'T4'];
+    learner.solvedProblems = ['p-56', 'p-58', 'p-60', 'p-62'];
+    learner.attemptedProblems = ['p-56', 'p-57', 'p-58', 'p-60', 'p-62'];
+    db.saveLearner(learner);
+
+    const cert = db.getCertificateForLearner(learnerId);
+    if (cert) {
+      db.revokeCertificate(cert.certificateId);
+    }
+    return res.json({ success: true, learner });
+  }
+  res.status(404).json({ error: 'Learner not found' });
 });
 
 // Claim a specific badge
