@@ -429,15 +429,29 @@ export function loadClientDB(): ClientDB {
     }
   }
 
-  // Ensure curriculum days have the latest basic programs and tips & tricks
+  // Ensure curriculum days have the latest basic programs, tips & tricks, and problem IDs
   db.curriculum = db.curriculum.map(day => {
     const fresh = INITIAL_CURRICULUM.find(d => d.code === day.code);
     return {
       ...day,
+      inClassProblemIds: Array.from(new Set([...(day.inClassProblemIds || []), ...(fresh?.inClassProblemIds || [])])),
+      postClassProblemIds: Array.from(new Set([...(day.postClassProblemIds || []), ...(fresh?.postClassProblemIds || [])])),
       basicPrograms: fresh?.basicPrograms || day.basicPrograms || [],
       tipsAndTricks: fresh?.tipsAndTricks || day.tipsAndTricks || []
     };
   });
+
+  // Ensure all problems from INITIAL_PROBLEMS are in db.problems
+  if (!db.problems) {
+    db.problems = INITIAL_PROBLEMS;
+  } else {
+    const existingPids = new Set(db.problems.map(p => p.id));
+    for (const p of INITIAL_PROBLEMS) {
+      if (!existingPids.has(p.id)) {
+        db.problems.push(p);
+      }
+    }
+  }
 
   // Ensure all Firebase authenticated users exist in client registry
   if (!db.learners) {

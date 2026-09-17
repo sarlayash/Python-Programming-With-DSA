@@ -342,6 +342,22 @@ class Database {
         }
         if (!this.data.problems || this.data.problems.length === 0) {
           this.data.problems = INITIAL_PROBLEMS;
+        } else {
+          // Merge in any newly defined problems (e.g. LeetCode, GeeksforGeeks, HackerRank)
+          const existingProblemIds = new Set(this.data.problems.map(p => p.id));
+          for (const initProb of INITIAL_PROBLEMS) {
+            if (!existingProblemIds.has(initProb.id)) {
+              this.data.problems.push(initProb);
+            }
+          }
+        }
+        // Sync problem IDs in curriculum
+        for (const initCurr of INITIAL_CURRICULUM) {
+          const c = this.data.curriculum.find(curr => curr.code === initCurr.code);
+          if (c) {
+            c.inClassProblemIds = Array.from(new Set([...c.inClassProblemIds, ...initCurr.inClassProblemIds]));
+            c.postClassProblemIds = Array.from(new Set([...c.postClassProblemIds, ...initCurr.postClassProblemIds]));
+          }
         }
         if (!this.data.badges || this.data.badges.length === 0) {
           this.data.badges = INITIAL_BADGES;

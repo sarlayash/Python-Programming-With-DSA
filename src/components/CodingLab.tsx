@@ -15,8 +15,16 @@ import {
   Sparkles,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   ShieldAlert,
-  Award
+  Award,
+  Search,
+  Filter,
+  Check,
+  Copy,
+  ArrowDownToLine,
+  Lightbulb,
+  BookOpen
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Problem, Submission, TestResult, LearnerProfile, EarnedBadge, Certificate } from '../types';
@@ -28,6 +36,7 @@ interface CodingLabProps {
   learner: LearnerProfile | null;
   onProblemSolved?: (problemId: string, newlyEarnedBadge?: EarnedBadge | null, newlyEarnedCert?: Certificate | null) => void;
   onOpenAuth: () => void;
+  onSelectProblem?: (problemId: string) => void;
 }
 
 export const CodingLab: React.FC<CodingLabProps> = ({
@@ -35,14 +44,83 @@ export const CodingLab: React.FC<CodingLabProps> = ({
   problems,
   learner,
   onProblemSolved,
-  onOpenAuth
+  onOpenAuth,
+  onSelectProblem
 }) => {
-  const currentProblem = problems.find(p => p.id === problemId) || problems[0];
+  // Problem Selection State
+  const [selectedPid, setSelectedPid] = useState<string>(problemId || problems[0]?.id || 'p-lc-two-sum');
 
+  useEffect(() => {
+    if (problemId && problemId !== selectedPid) {
+      setSelectedPid(problemId);
+    }
+  }, [problemId]);
+
+  const currentProblem = problems.find(p => p.id === selectedPid) || problems[0];
+  const currentIndex = problems.findIndex(p => p.id === currentProblem?.id);
+
+  // Problem Switcher Dropdown & Filters
+  const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [platformFilter, setPlatformFilter] = useState<'all' | 'LeetCode' | 'GeeksforGeeks' | 'HackerRank' | 'curriculum'>('all');
+  const [diffFilter, setDiffFilter] = useState<'all' | 'Easy' | 'Medium' | 'Hard'>('all');
+  const selectorRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (selectorRef.current && !selectorRef.current.contains(e.target as Node)) {
+        setIsSelectorOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  // Filtered problems list
+  const filteredProblems = problems.filter(p => {
+    const matchesSearch =
+      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.statement.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      `q#${p.questionNumber}`.includes(searchQuery.toLowerCase());
+
+    const matchesPlatform =
+      platformFilter === 'all'
+        ? true
+        : platformFilter === 'curriculum'
+        ? !p.platform
+        : p.platform === platformFilter;
+
+    const matchesDiff = diffFilter === 'all' ? true : p.difficulty === diffFilter;
+
+    return matchesSearch && matchesPlatform && matchesDiff;
+  });
+
+  const selectProblem = (newPid: string) => {
+    setSelectedPid(newPid);
+    setIsSelectorOpen(false);
+    if (onSelectProblem) {
+      onSelectProblem(newPid);
+    }
+  };
+
+  const handlePrevProblem = () => {
+    if (currentIndex > 0) {
+      selectProblem(problems[currentIndex - 1].id);
+    }
+  };
+
+  const handleNextProblem = () => {
+    if (currentIndex < problems.length - 1) {
+      selectProblem(problems[currentIndex + 1].id);
+    }
+  };
+
+  // Editor & Output States
   const [code, setCode] = useState<string>(currentProblem?.starterCode || '');
   const [customInput, setCustomInput] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'problem' | 'output' | 'results' | 'hints' | 'solution'>('problem');
-  
+
   // Execution states
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,8 +137,13 @@ export const CodingLab: React.FC<CodingLabProps> = ({
   const [revealUnlocked, setRevealUnlocked] = useState<boolean>(false);
   const [revealedSolution, setRevealedSolution] = useState<any>(null);
   const [showRevealModal, setShowRevealModal] = useState<boolean>(false);
+  const [revealedHintLevel, setRevealedHintLevel] = useState<number>(0); // 0 = none, 1 = hint1, 2 = hint2
 
-  const isSolved = learner?.solvedProblems.includes(currentProblem.id);
+  // Feedback states
+  const [copySuccess, setCopySuccess] = useState(false);
+  const [loadSolutionSuccess, setLoadSolutionSuccess] = useState(false);
+
+  const isSolved = learner?.solvedProblems.includes(currentProblem?.id || '');
 
   // Sync state on problem change
   useEffect(() => {
@@ -69,8 +152,9 @@ export const CodingLab: React.FC<CodingLabProps> = ({
       setRunOutput(null);
       setSubmissionResult(null);
       setRevealedSolution(null);
+      setRevealedHintLevel(0);
       setCustomInput(currentProblem.examples[0]?.input || '');
-      
+
       const alreadyRevealed = learner?.revealedProblems.includes(currentProblem.id);
       setRevealUnlocked(!!alreadyRevealed || !!isSolved);
       setAttempts(0);
@@ -133,14 +217,44 @@ export const CodingLab: React.FC<CodingLabProps> = ({
     }
   };
 
-  const handleRevealAnswer = async () => {
+  // Solution Reveal Logic
+  const handleRevealFullSolution = async () => {
     try {
       const res = await api.revealAnswer(currentProblem.id);
       setRevealedSolution(res);
+      setRevealUnlocked(true);
       setActiveTab('solution');
       setShowRevealModal(false);
     } catch (err: any) {
       alert(err.message || 'Could not reveal answer');
+    }
+  };
+
+  const handleUnlockHint1 = () => {
+    setRevealedHintLevel(Math.max(revealedHintLevel, 1));
+    setActiveTab('hints');
+    setShowRevealModal(false);
+  };
+
+  const handleUnlockHint2 = () => {
+    setRevealedHintLevel(2);
+    setActiveTab('hints');
+    setShowRevealModal(false);
+  };
+
+  const handleLoadSolutionIntoEditor = () => {
+    if (revealedSolution?.fullSolution) {
+      setCode(revealedSolution.fullSolution);
+      setLoadSolutionSuccess(true);
+      setTimeout(() => setLoadSolutionSuccess(false), 3000);
+    }
+  };
+
+  const handleCopySolution = () => {
+    if (revealedSolution?.fullSolution) {
+      navigator.clipboard.writeText(revealedSolution.fullSolution);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2500);
     }
   };
 
@@ -158,43 +272,206 @@ export const CodingLab: React.FC<CodingLabProps> = ({
     }
   };
 
+  if (!currentProblem) {
+    return (
+      <div className="p-8 text-center bg-white rounded-2xl border border-slate-200">
+        <p className="text-slate-600">No problems available.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] min-h-[680px] bg-slate-100 rounded-2xl border border-slate-300 overflow-hidden shadow-sm">
       {/* Top IDE Toolbar */}
-      <div className="bg-[#0f172a] text-slate-200 px-4 py-2.5 flex items-center justify-between border-b border-slate-800 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xs font-bold text-amber-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
-              {currentProblem.topicCode} &bull; Q#{currentProblem.questionNumber}
+      <div className="bg-[#0f172a] text-slate-200 px-4 py-2 flex flex-wrap items-center justify-between border-b border-slate-800 shrink-0 gap-2">
+        {/* Left Side: Navigation Controls & Problem Switcher */}
+        <div className="flex items-center gap-2 relative" ref={selectorRef}>
+          {/* Prev / Next Arrows */}
+          <div className="flex items-center bg-slate-800/90 rounded-lg p-0.5 border border-slate-700">
+            <button
+              onClick={handlePrevProblem}
+              disabled={currentIndex <= 0}
+              className="p-1 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed rounded transition-colors"
+              title="Previous Problem"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="text-[11px] font-mono px-1.5 text-slate-400">
+              {currentIndex + 1}/{problems.length}
             </span>
-            <h2 className="text-xs sm:text-sm font-bold text-white truncate max-w-[240px] sm:max-w-md">
-              {currentProblem.title}
-            </h2>
+            <button
+              onClick={handleNextProblem}
+              disabled={currentIndex >= problems.length - 1}
+              className="p-1 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed rounded transition-colors"
+              title="Next Problem"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
 
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-            currentProblem.difficulty === 'Easy'
-              ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
-              : currentProblem.difficulty === 'Medium'
-              ? 'bg-amber-950 text-amber-400 border border-amber-800'
-              : 'bg-rose-950 text-rose-400 border border-rose-800'
-          }`}>
+          {/* Interactive Problem Dropdown Trigger */}
+          <button
+            onClick={() => setIsSelectorOpen(!isSelectorOpen)}
+            className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700/80 rounded-lg border border-slate-700 text-left transition-colors max-w-[260px] sm:max-w-xs md:max-w-sm"
+          >
+            <span className="font-mono text-[10px] font-bold text-amber-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 shrink-0">
+              Q#{currentProblem.questionNumber}
+            </span>
+            <span className="text-xs font-bold text-white truncate">
+              {currentProblem.title}
+            </span>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-auto" />
+          </button>
+
+          {/* Platform Badge */}
+          {currentProblem.platform && (
+            <span
+              className={`hidden sm:inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded border shadow-sm ${
+                currentProblem.platform === 'LeetCode'
+                  ? 'bg-amber-500/15 text-amber-400 border-amber-500/40'
+                  : currentProblem.platform === 'GeeksforGeeks'
+                  ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40'
+                  : 'bg-cyan-500/15 text-cyan-400 border-cyan-500/40'
+              }`}
+            >
+              {currentProblem.platform}
+            </span>
+          )}
+
+          {/* Difficulty Badge */}
+          <span
+            className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+              currentProblem.difficulty === 'Easy'
+                ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                : currentProblem.difficulty === 'Medium'
+                ? 'bg-amber-950 text-amber-400 border border-amber-800'
+                : 'bg-rose-950 text-rose-400 border border-rose-800'
+            }`}
+          >
             {currentProblem.difficulty}
           </span>
 
           {isSolved && (
-            <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800">
+            <span className="hidden md:inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800">
               <CheckCircle className="w-3 h-3" /> Solved
             </span>
           )}
+
+          {/* Interactive Problem Dropdown Menu */}
+          {isSelectorOpen && (
+            <div className="absolute top-full left-0 mt-2 w-80 sm:w-96 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+              {/* Search & Filters */}
+              <div className="p-3 border-b border-slate-800 space-y-2">
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                  <input
+                    type="text"
+                    placeholder="Search problems by name or #..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 bg-slate-950 text-slate-200 border border-slate-800 rounded-lg text-xs placeholder:text-slate-500 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                {/* Platform Filters */}
+                <div className="flex items-center gap-1 overflow-x-auto pb-1 text-[10px]">
+                  {(['all', 'LeetCode', 'GeeksforGeeks', 'HackerRank', 'curriculum'] as const).map((plat) => (
+                    <button
+                      key={plat}
+                      onClick={() => setPlatformFilter(plat)}
+                      className={`px-2 py-0.5 rounded font-medium whitespace-nowrap transition-colors ${
+                        platformFilter === plat
+                          ? 'bg-amber-500 text-slate-950 font-bold'
+                          : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {plat === 'all' ? 'All Platforms' : plat === 'curriculum' ? 'Core DSA' : plat}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Difficulty Filters */}
+                <div className="flex items-center gap-1 text-[10px]">
+                  {(['all', 'Easy', 'Medium', 'Hard'] as const).map((diff) => (
+                    <button
+                      key={diff}
+                      onClick={() => setDiffFilter(diff)}
+                      className={`px-2 py-0.5 rounded font-medium transition-colors ${
+                        diffFilter === diff
+                          ? 'bg-slate-200 text-slate-950 font-bold'
+                          : 'bg-slate-800/80 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {diff === 'all' ? 'All Tiers' : diff}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Problem List */}
+              <div className="max-h-72 overflow-y-auto divide-y divide-slate-800/60 p-1">
+                {filteredProblems.length === 0 ? (
+                  <div className="p-4 text-center text-xs text-slate-500">
+                    No matching problems found.
+                  </div>
+                ) : (
+                  filteredProblems.map((p) => {
+                    const solved = learner?.solvedProblems.includes(p.id);
+                    const isCurrent = p.id === currentProblem.id;
+
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => selectProblem(p.id)}
+                        className={`w-full p-2.5 text-left rounded-lg transition-colors flex items-center justify-between gap-2 text-xs ${
+                          isCurrent
+                            ? 'bg-amber-500/15 border border-amber-500/30'
+                            : 'hover:bg-slate-800/60'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-mono text-[10px] text-slate-500 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 shrink-0">
+                            #{p.questionNumber}
+                          </span>
+                          <span className={`font-semibold truncate ${isCurrent ? 'text-amber-300' : 'text-slate-200'}`}>
+                            {p.title}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {p.platform && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                              {p.platform === 'GeeksforGeeks' ? 'GFG' : p.platform === 'HackerRank' ? 'HR' : 'LC'}
+                            </span>
+                          )}
+                          <span
+                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                              p.difficulty === 'Easy'
+                                ? 'text-emerald-400'
+                                : p.difficulty === 'Medium'
+                                ? 'text-amber-400'
+                                : 'text-rose-400'
+                            }`}
+                          >
+                            {p.difficulty}
+                          </span>
+                          {solved && <CheckCircle className="w-3 h-3 text-emerald-400" />}
+                        </div>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Action Controls */}
+        {/* Right Side: IDE Actions & Solution Reveal Options */}
         <div className="flex items-center gap-2">
           <button
             onClick={() => setCode(currentProblem.starterCode)}
             className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors"
-            title="Reset to starter code"
+            title="Reset code to default template"
           >
             <RotateCcw className="w-4 h-4" />
           </button>
@@ -205,13 +482,13 @@ export const CodingLab: React.FC<CodingLabProps> = ({
               setSubmissionResult(null);
             }}
             className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors"
-            title="Clear output"
+            title="Clear output console"
           >
             <Trash2 className="w-4 h-4" />
           </button>
 
-          {/* Reveal Answer Action Button */}
-          {revealUnlocked ? (
+          {/* Solution Reveal Action Button with Options */}
+          {revealUnlocked || revealedSolution ? (
             <button
               onClick={() => {
                 if (!revealedSolution) {
@@ -220,21 +497,24 @@ export const CodingLab: React.FC<CodingLabProps> = ({
                   setActiveTab('solution');
                 }
               }}
-              className="px-2.5 py-1.5 bg-indigo-900/60 hover:bg-indigo-800 text-indigo-200 border border-indigo-700/60 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors"
+              className="px-2.5 py-1.5 bg-indigo-900/70 hover:bg-indigo-800 text-indigo-200 border border-indigo-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors shadow-sm"
+              title="View full solution and reveal options"
             >
               <Eye className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Reveal Answer</span>
+              <span>Solution Options</span>
             </button>
           ) : (
-            <div
-              title="Reveal Answer unlocks automatically after 2 incorrect submission attempts."
-              className="px-2.5 py-1.5 bg-slate-800/80 text-slate-500 text-xs font-medium rounded-lg flex items-center gap-1.5 cursor-not-allowed border border-slate-700/50"
+            <button
+              onClick={() => setShowRevealModal(true)}
+              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium rounded-lg flex items-center gap-1.5 border border-slate-700 transition-colors"
+              title="Reveal hints or unlock full solution"
             >
-              <Eye className="w-3.5 h-3.5 text-slate-500" />
-              <span>Reveal (Locked: {attempts}/2)</span>
-            </div>
+              <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+              <span>Reveal Options ({attempts}/2)</span>
+            </button>
           )}
 
+          {/* Run Code */}
           <button
             onClick={handleRun}
             disabled={isRunning || isSubmitting}
@@ -244,6 +524,7 @@ export const CodingLab: React.FC<CodingLabProps> = ({
             <span>{isRunning ? 'Running...' : 'Run Code'}</span>
           </button>
 
+          {/* Submit Solution */}
           <button
             onClick={handleSubmit}
             disabled={isRunning || isSubmitting}
@@ -257,42 +538,53 @@ export const CodingLab: React.FC<CodingLabProps> = ({
 
       {/* Main Split Body: Left Details Panel, Right Monaco-Style Editor & Output */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        {/* Left Side: Problem Statement & Guidance Tabs */}
+        {/* Left Side: Problem Statement, Hints & Solution Guidance */}
         <div className="w-full lg:w-5/12 bg-white border-r border-slate-200 flex flex-col overflow-hidden">
-          {/* Tabs */}
+          {/* Navigation Tabs */}
           <div className="flex border-b border-slate-200 bg-slate-50 text-xs font-semibold px-4 pt-2 gap-4">
             <button
               onClick={() => setActiveTab('problem')}
               className={`pb-2 border-b-2 transition-colors flex items-center gap-1.5 ${
-                activeTab === 'problem' ? 'border-amber-500 text-slate-900 font-bold' : 'border-transparent text-slate-500 hover:text-slate-800'
+                activeTab === 'problem'
+                  ? 'border-amber-500 text-slate-900 font-bold'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
               <Code2 className="w-3.5 h-3.5 text-amber-600" />
               Problem
             </button>
+
             <button
               onClick={() => setActiveTab('hints')}
               className={`pb-2 border-b-2 transition-colors flex items-center gap-1.5 ${
-                activeTab === 'hints' ? 'border-amber-500 text-slate-900 font-bold' : 'border-transparent text-slate-500 hover:text-slate-800'
+                activeTab === 'hints'
+                  ? 'border-amber-500 text-slate-900 font-bold'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
               <HelpCircle className="w-3.5 h-3.5 text-amber-600" />
-              Hints {submissionResult?.hintToProvide && '(!)'}
+              Hints {revealedHintLevel > 0 && `(L${revealedHintLevel})`}
             </button>
+
             <button
               onClick={() => setActiveTab('results')}
               className={`pb-2 border-b-2 transition-colors flex items-center gap-1.5 ${
-                activeTab === 'results' ? 'border-amber-500 text-slate-900 font-bold' : 'border-transparent text-slate-500 hover:text-slate-800'
+                activeTab === 'results'
+                  ? 'border-amber-500 text-slate-900 font-bold'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
               <CheckCircle className="w-3.5 h-3.5 text-amber-600" />
               Test Results
             </button>
+
             {revealedSolution && (
               <button
                 onClick={() => setActiveTab('solution')}
                 className={`pb-2 border-b-2 transition-colors flex items-center gap-1.5 ${
-                  activeTab === 'solution' ? 'border-amber-500 text-slate-900 font-bold' : 'border-transparent text-slate-500 hover:text-slate-800'
+                  activeTab === 'solution'
+                    ? 'border-indigo-600 text-indigo-900 font-bold'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
                 }`}
               >
                 <Eye className="w-3.5 h-3.5 text-indigo-600" />
@@ -301,12 +593,23 @@ export const CodingLab: React.FC<CodingLabProps> = ({
             )}
           </div>
 
-          {/* Left Panel Scrollable Area */}
+          {/* Left Panel Scrollable Content */}
           <div className="flex-1 overflow-y-auto p-5 text-xs text-slate-700 space-y-4">
+            {/* Problem Tab */}
             {activeTab === 'problem' && (
               <>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 mb-1">{currentProblem.title}</h3>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    {currentProblem.platform && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-300">
+                        {currentProblem.platform}
+                      </span>
+                    )}
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
+                      Target: {currentProblem.timeComplexity}
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900 mb-2">{currentProblem.title}</h3>
                   <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">{currentProblem.statement}</p>
                 </div>
 
@@ -365,74 +668,106 @@ export const CodingLab: React.FC<CodingLabProps> = ({
                 </div>
 
                 <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-500">
-                  <span>Time Complexity Target: <strong className="font-mono text-slate-700">{currentProblem.timeComplexity}</strong></span>
+                  <span>Time Target: <strong className="font-mono text-slate-700">{currentProblem.timeComplexity}</strong></span>
                   <span>Space: <strong className="font-mono text-slate-700">{currentProblem.spaceComplexity}</strong></span>
                 </div>
               </>
             )}
 
+            {/* Hints Tab */}
             {activeTab === 'hints' && (
               <div className="space-y-4">
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-xs">
-                  <div className="font-bold flex items-center gap-1.5 mb-1">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                    Progressive Hint Guidance Engine
-                  </div>
-                  <p>Wrong attempts automatically unlock focused algorithmic hints and edge-case diagnostics.</p>
+                <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-lg text-amber-900 text-xs font-medium">
+                  Progressive hints provide incremental intuition without giving away the full code.
                 </div>
 
-                {submissionResult?.hintToProvide ? (
-                  <div className="p-4 bg-white border border-amber-300 rounded-xl shadow-sm space-y-2">
-                    <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold rounded">
-                      Attempt {attempts} Hint
+                {/* Hint 1 */}
+                <div className="border border-slate-200 rounded-xl p-4 space-y-2 bg-slate-50">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <Lightbulb className="w-4 h-4 text-amber-500" />
+                      Hint 1: Conceptual Intuition
                     </span>
-                    <p className="text-slate-800 leading-relaxed font-medium">
-                      {submissionResult.hintToProvide}
+                    {revealedHintLevel >= 1 || attempts >= 1 || isSolved ? (
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
+                        Unlocked
+                      </span>
+                    ) : (
+                      <button
+                        onClick={handleUnlockHint1}
+                        className="text-[10px] font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded border border-indigo-200 transition-colors"
+                      >
+                        Reveal Hint 1
+                      </button>
+                    )}
+                  </div>
+                  {revealedHintLevel >= 1 || attempts >= 1 || isSolved ? (
+                    <p className="text-slate-700 leading-relaxed text-xs">
+                      {currentProblem.hints[0] || 'Analyze input boundaries and look for monotonic properties or hash structures.'}
                     </p>
-                  </div>
-                ) : (
-                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-500">
-                    Submit a solution attempt to trigger hints. (Hint 1 on 1st incorrect attempt, Hint 2 on 2nd).
-                  </div>
-                )}
+                  ) : (
+                    <p className="text-slate-400 italic text-[11px]">
+                      Click "Reveal Hint 1" to view initial mathematical guidance.
+                    </p>
+                  )}
+                </div>
 
-                {submissionResult?.strongerGuidance && (
-                  <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl space-y-2">
-                    <span className="px-2 py-0.5 bg-rose-100 text-rose-800 text-[10px] font-bold rounded">
-                      Deep Mistake Guidance (Attempt {attempts})
+                {/* Hint 2 */}
+                <div className="border border-slate-200 rounded-xl p-4 space-y-2 bg-slate-50">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <Lightbulb className="w-4 h-4 text-amber-600" />
+                      Hint 2: Algorithmic Strategy & Pointers
                     </span>
-                    <p className="text-rose-900 leading-relaxed font-medium">
-                      {submissionResult.strongerGuidance}
-                    </p>
+                    {revealedHintLevel >= 2 || attempts >= 2 || isSolved ? (
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
+                        Unlocked
+                      </span>
+                    ) : (
+                      <button
+                        onClick={handleUnlockHint2}
+                        className="text-[10px] font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded border border-indigo-200 transition-colors"
+                      >
+                        Reveal Hint 2
+                      </button>
+                    )}
                   </div>
-                )}
+                  {revealedHintLevel >= 2 || attempts >= 2 || isSolved ? (
+                    <p className="text-slate-700 leading-relaxed text-xs">
+                      {currentProblem.hints[1] || 'Consider edge cases such as single elements, negative values, and off-by-one indices.'}
+                    </p>
+                  ) : (
+                    <p className="text-slate-400 italic text-[11px]">
+                      Unlocks deeper algorithmic structure and recurrence relations.
+                    </p>
+                  )}
+                </div>
 
-                {revealUnlocked && (
-                  <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-xl space-y-2">
-                    <div className="font-bold text-indigo-900">Reveal Answer is Unlocked!</div>
-                    <p className="text-indigo-800 text-[11px]">
-                      You can now view the full model solution, mathematical proof, and complexity breakdown.
-                    </p>
-                    <button
-                      onClick={() => setShowRevealModal(true)}
-                      className="px-3 py-1.5 bg-indigo-600 text-white rounded text-xs font-semibold hover:bg-indigo-700"
-                    >
-                      Inspect Solution Now
-                    </button>
-                  </div>
-                )}
+                {/* Direct Reveal Action */}
+                <div className="pt-2">
+                  <button
+                    onClick={() => setShowRevealModal(true)}
+                    className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <Eye className="w-4 h-4" />
+                    Open Solution Reveal Options
+                  </button>
+                </div>
               </div>
             )}
 
+            {/* Test Results Tab */}
             {activeTab === 'results' && (
               <div className="space-y-4">
                 {submissionResult ? (
                   <>
-                    <div className={`p-4 rounded-xl border flex items-center justify-between ${
-                      submissionResult.submission.status === 'passed'
-                        ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                        : 'bg-rose-50 border-rose-200 text-rose-900'
-                    }`}>
+                    <div
+                      className={`p-4 rounded-xl border flex items-center justify-between ${
+                        submissionResult.submission.status === 'passed'
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                          : 'bg-rose-50 border-rose-200 text-rose-900'
+                      }`}
+                    >
                       <div className="flex items-center gap-3">
                         {submissionResult.submission.status === 'passed' ? (
                           <CheckCircle className="w-6 h-6 text-emerald-600" />
@@ -473,7 +808,7 @@ export const CodingLab: React.FC<CodingLabProps> = ({
                               ) : (
                                 <XCircle className="w-3.5 h-3.5 text-rose-600" />
                               )}
-                              Test Case #{t.testIndex} {t.isHidden && '(Hidden Verification)'}
+                              Test Case #{t.testIndex + 1} {t.isHidden && '(Hidden Verification)'}
                             </span>
                             <span className={t.passed ? 'text-emerald-700' : 'text-rose-700'}>
                               {t.passed ? 'PASSED' : 'FAILED'}
@@ -493,7 +828,7 @@ export const CodingLab: React.FC<CodingLabProps> = ({
                             </div>
                           ) : (
                             <p className="text-slate-500 font-sans italic text-[10px]">
-                              Inputs and outputs are hidden for enterprise grading integrity.
+                              Inputs and outputs are hidden for test suite validation.
                             </p>
                           )}
                         </div>
@@ -501,56 +836,102 @@ export const CodingLab: React.FC<CodingLabProps> = ({
                     </div>
                   </>
                 ) : (
-                  <div className="p-6 text-center text-slate-400">
-                    Click <strong>Submit Solution</strong> to evaluate your code against the full test suite.
+                  <div className="p-8 text-center text-slate-400 space-y-2">
+                    <CheckCircle className="w-8 h-8 text-slate-300 mx-auto" />
+                    <p>Click <strong>Submit Solution</strong> to evaluate your code against all test cases.</p>
                   </div>
                 )}
               </div>
             )}
 
+            {/* Solution Tab (Full Verified Model Solution) */}
             {activeTab === 'solution' && revealedSolution && (
               <div className="space-y-4">
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-900 text-xs font-semibold">
-                  Full Verified Reference Solution & Proof
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-900 text-xs font-semibold flex items-center justify-between">
+                  <span>Verified Official Reference Solution</span>
+                  <span className="font-mono text-[11px] text-emerald-700">100% Tested</span>
                 </div>
 
-                <div className="space-y-2">
-                  <h4 className="font-bold text-slate-900">Python 3 Solution:</h4>
-                  <pre className="p-4 bg-[#0f172a] text-emerald-400 rounded-xl font-mono text-[11px] overflow-x-auto leading-relaxed">
+                {/* Solution Action Options */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={handleLoadSolutionIntoEditor}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs flex items-center gap-1.5 transition-colors shadow-sm"
+                  >
+                    <ArrowDownToLine className="w-3.5 h-3.5" />
+                    <span>{loadSolutionSuccess ? 'Loaded in Editor!' : 'Load into Editor'}</span>
+                  </button>
+
+                  <button
+                    onClick={handleCopySolution}
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-lg font-semibold text-xs flex items-center gap-1.5 transition-colors"
+                  >
+                    {copySuccess ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="text-emerald-700">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-slate-600" />
+                        <span>Copy Code</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Model Code */}
+                <div className="space-y-1.5">
+                  <h4 className="font-bold text-slate-900">Python 3 Reference Code:</h4>
+                  <pre className="p-4 bg-[#0f172a] text-emerald-400 rounded-xl font-mono text-[11px] overflow-x-auto leading-relaxed border border-slate-800">
                     {revealedSolution.fullSolution}
                   </pre>
                 </div>
 
+                {/* Algorithmic Explanation */}
                 <div className="space-y-1">
                   <h4 className="font-bold text-slate-900">Algorithmic Explanation:</h4>
-                  <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">{revealedSolution.explanation}</p>
+                  <p className="text-slate-700 leading-relaxed whitespace-pre-wrap bg-slate-50 p-3 rounded-lg border border-slate-200">
+                    {revealedSolution.explanation}
+                  </p>
                 </div>
 
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-1">
+                {/* Complexity Analysis */}
+                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
                   <h4 className="font-bold text-slate-900">Complexity Analysis:</h4>
-                  <div className="text-[11px] text-slate-700">
-                    <div><strong>Time:</strong> <code className="font-mono text-amber-700">{revealedSolution.timeComplexity}</code></div>
-                    <div><strong>Space:</strong> <code className="font-mono text-amber-700">{revealedSolution.spaceComplexity}</code></div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-2 bg-white rounded border border-slate-200">
+                      <span className="text-slate-500 font-semibold block text-[10px]">Time Complexity</span>
+                      <code className="font-mono text-amber-700 font-bold text-xs">{revealedSolution.timeComplexity}</code>
+                    </div>
+                    <div className="p-2 bg-white rounded border border-slate-200">
+                      <span className="text-slate-500 font-semibold block text-[10px]">Space Complexity</span>
+                      <code className="font-mono text-amber-700 font-bold text-xs">{revealedSolution.spaceComplexity}</code>
+                    </div>
                   </div>
                 </div>
 
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-900">
-                  <strong>Key Takeaway:</strong> {revealedSolution.learningTakeaway}
+                {/* Interview Takeaway */}
+                <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900 space-y-1">
+                  <strong className="block font-bold">Key Interview Takeaway:</strong>
+                  <p className="text-amber-800 leading-relaxed">{revealedSolution.learningTakeaway}</p>
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Right Side: Monaco-Style Python Editor & Live Output */}
+        {/* Right Side: Monaco-Style Python Editor & Output Console */}
         <div className="w-full lg:w-7/12 flex flex-col bg-[#0b132b] text-slate-100 overflow-hidden">
-          {/* Editor Header */}
+          {/* Editor Header Bar */}
           <div className="bg-[#0f172a] px-4 py-2 border-b border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
             <span className="flex items-center gap-1.5 text-slate-300">
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
               solution.py
             </span>
-            <span className="text-[10px] text-slate-500">Python 3.10 &bull; Isolated Sandbox &bull; UTF-8</span>
+            <span className="text-[10px] text-slate-500">
+              Python 3.10 &bull; Standard Execution Harness &bull; UTF-8
+            </span>
           </div>
 
           {/* Interactive Code Editor with line numbers */}
@@ -573,13 +954,13 @@ export const CodingLab: React.FC<CodingLabProps> = ({
             />
           </div>
 
-          {/* Custom Stdin & Output Console Tray */}
+          {/* Terminal Console Tray */}
           <div className="h-44 bg-[#080d1a] border-t border-slate-800 flex flex-col shrink-0">
             <div className="flex items-center justify-between px-3 py-1.5 bg-[#0e1628] border-b border-slate-800 text-[11px] font-mono text-slate-400">
               <div className="flex items-center gap-4">
                 <span className="flex items-center gap-1 text-slate-300">
                   <Terminal className="w-3.5 h-3.5 text-amber-400" />
-                  Terminal Console
+                  Terminal Output
                 </span>
                 {runOutput && (
                   <span className="text-[10px] text-slate-400">
@@ -594,8 +975,8 @@ export const CodingLab: React.FC<CodingLabProps> = ({
                   type="text"
                   value={customInput}
                   onChange={(e) => setCustomInput(e.target.value)}
-                  placeholder="Input line..."
-                  className="bg-[#080d1a] px-2 py-0.5 rounded border border-slate-700 text-xs font-mono text-slate-200 w-32 focus:outline-none focus:border-amber-500"
+                  placeholder="e.g. 4 2 7 11 15 9"
+                  className="bg-[#080d1a] px-2 py-0.5 rounded border border-slate-700 text-xs font-mono text-slate-200 w-36 focus:outline-none focus:border-amber-500"
                 />
               </div>
             </div>
@@ -603,7 +984,7 @@ export const CodingLab: React.FC<CodingLabProps> = ({
             {/* Output view */}
             <div className="flex-1 p-3 overflow-y-auto font-mono text-[11px] leading-relaxed">
               {isRunning ? (
-                <div className="text-amber-400 animate-pulse">Running script in isolated container sandbox...</div>
+                <div className="text-amber-400 animate-pulse">Running Python script in sandbox environment...</div>
               ) : runOutput ? (
                 <div>
                   {runOutput.stdout && (
@@ -618,7 +999,7 @@ export const CodingLab: React.FC<CodingLabProps> = ({
                 </div>
               ) : (
                 <div className="text-slate-600 italic">
-                  Press <strong>Run Code</strong> to execute with input, or <strong>Submit Solution</strong> to evaluate all test cases.
+                  Press <strong>Run Code</strong> to test custom stdin, or <strong>Submit Solution</strong> to run full test suite.
                 </div>
               )}
             </div>
@@ -626,29 +1007,90 @@ export const CodingLab: React.FC<CodingLabProps> = ({
         </div>
       </div>
 
-      {/* Reveal Answer Confirmation Modal */}
+      {/* Solution Reveal Options Modal */}
       {showRevealModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-200 text-slate-800 space-y-4">
-            <div className="flex items-center gap-2 text-indigo-700 font-bold">
-              <Eye className="w-5 h-5" />
-              <h3 className="text-base">Unlock Official Solution?</h3>
-            </div>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              You have completed 2 or more attempts. Revealing the answer displays the complete model code, mathematical breakdown, and complexity analysis. This action will be logged in your learner analytics.
-            </p>
-            <div className="flex justify-end gap-2 pt-2">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 text-slate-800 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2 text-indigo-700 font-bold">
+                <Eye className="w-5 h-5" />
+                <h3 className="text-base">Solution Reveal Options</h3>
+              </div>
               <button
                 onClick={() => setShowRevealModal(false)}
-                className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-800"
+                className="text-slate-400 hover:text-slate-600 p-1 rounded"
               >
-                Continue Trying
+                <XCircle className="w-5 h-5" />
               </button>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Select which level of solution guidance you want to unlock for{' '}
+              <strong className="text-slate-900">{currentProblem.title}</strong>:
+            </p>
+
+            <div className="space-y-3">
+              {/* Option 1: Hint 1 */}
               <button
-                onClick={handleRevealAnswer}
-                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg shadow-sm"
+                onClick={handleUnlockHint1}
+                className="w-full text-left p-3.5 rounded-xl border border-slate-200 hover:border-amber-400 hover:bg-amber-50/20 transition-all flex items-start gap-3 group"
               >
-                Reveal Solution
+                <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">
+                  H1
+                </div>
+                <div>
+                  <h4 className="font-bold text-xs text-slate-900 group-hover:text-amber-900">
+                    Option 1: Conceptual Hint (Intuition)
+                  </h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Provides the core mathematical reasoning and data structure hints without spoiling any code.
+                  </p>
+                </div>
+              </button>
+
+              {/* Option 2: Hint 2 */}
+              <button
+                onClick={handleUnlockHint2}
+                className="w-full text-left p-3.5 rounded-xl border border-slate-200 hover:border-amber-400 hover:bg-amber-50/20 transition-all flex items-start gap-3 group"
+              >
+                <div className="w-8 h-8 rounded-lg bg-amber-200 text-amber-800 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">
+                  H2
+                </div>
+                <div>
+                  <h4 className="font-bold text-xs text-slate-900 group-hover:text-amber-900">
+                    Option 2: Algorithmic Strategy (Transitions & Edge Cases)
+                  </h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Provides pointer movements, edge conditions, and recurrence relations.
+                  </p>
+                </div>
+              </button>
+
+              {/* Option 3: Full Reference Solution */}
+              <button
+                onClick={handleRevealFullSolution}
+                className="w-full text-left p-3.5 rounded-xl border border-indigo-200 hover:border-indigo-400 bg-indigo-50/40 hover:bg-indigo-50/80 transition-all flex items-start gap-3 group"
+              >
+                <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 font-bold text-xs mt-0.5 shadow-sm">
+                  <Eye className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-xs text-indigo-950 group-hover:text-indigo-900">
+                    Option 3: Unlock Complete Verified Solution
+                  </h4>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Unlocks the tested Python reference solution, copy/load controls, step-by-step explanation, and complexity analysis.
+                  </p>
+                </div>
+              </button>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                onClick={() => setShowRevealModal(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 rounded-lg"
+              >
+                Cancel
               </button>
             </div>
           </div>

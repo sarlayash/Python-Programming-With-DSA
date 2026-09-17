@@ -688,9 +688,22 @@ ${activeDay.commonErrors.map(e => `* Pitfall: ${e.error}\n  Solution: ${e.fix}\n
                     >
                       <div>
                         <div className="flex items-center justify-between gap-2 mb-1.5">
-                          <span className="text-[11px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                            Q#{p.questionNumber}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                              Q#{p.questionNumber}
+                            </span>
+                            {p.platform && (
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                                p.platform === 'LeetCode'
+                                  ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                                  : p.platform === 'GeeksforGeeks'
+                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                  : 'bg-cyan-100 text-cyan-800 border border-cyan-300'
+                              }`}>
+                                {p.platform}
+                              </span>
+                            )}
+                          </div>
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
                             p.difficulty === 'Easy'
                               ? 'bg-emerald-50 text-emerald-700'
@@ -754,11 +767,28 @@ ${activeDay.commonErrors.map(e => `* Pitfall: ${e.error}\n  Solution: ${e.fix}\n
                       >
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-1.5">
-                            <span className="text-[11px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                              Q#{p.questionNumber}
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[11px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                                Q#{p.questionNumber}
+                              </span>
+                              {p.platform && (
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                                  p.platform === 'LeetCode'
+                                    ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                                    : p.platform === 'GeeksforGeeks'
+                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                    : 'bg-cyan-100 text-cyan-800 border border-cyan-300'
+                                }`}>
+                                  {p.platform}
+                                </span>
+                              )}
+                            </div>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                              p.difficulty === 'Easy' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                              p.difficulty === 'Easy'
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : p.difficulty === 'Medium'
+                                ? 'bg-amber-50 text-amber-700'
+                                : 'bg-rose-50 text-rose-700'
                             }`}>
                               {p.difficulty}
                             </span>

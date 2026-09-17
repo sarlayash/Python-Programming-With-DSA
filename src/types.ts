@@ -120,6 +120,8 @@ export interface Problem {
   title: string;
   type: 'inclass' | 'postclass';
   difficulty: 'Easy' | 'Medium' | 'Hard';
+  platform?: 'LeetCode' | 'GeeksforGeeks' | 'HackerRank';
+  platformProblemId?: string;
   statement: string;
   inputFormat: string;
   outputFormat: string;

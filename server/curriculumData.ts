@@ -85,7 +85,7 @@ Common algorithms include frequency maps, two pointers, and prefix sums.`,
         explanation: 'Scans linearly and stops immediately on the 2nd match.'
       }
     ],
-    inClassProblemIds: ['p-61', 'p-62', 'p-63'],
+    inClassProblemIds: ['p-61', 'p-62', 'p-63', 'p-lc-two-sum', 'p-hr-birthday-candles', 'p-gfg-missing-number'],
     postClassProblemIds: ['p-64', 'p-65'],
     completionCriteria: { minSolved: 2, description: 'Complete 2 array problems' },
     isPublished: true
@@ -114,8 +114,8 @@ Two pointers allow reversing arrays in-place in O(N) time and O(1) space.`,
     ],
     debuggingStrategies: ['Test with odd length, even length, and all-negative arrays.'],
     practicalExamples: [],
-    inClassProblemIds: ['p-66', 'p-67', 'p-68'],
-    postClassProblemIds: ['p-69', 'p-70'],
+    inClassProblemIds: ['p-66', 'p-67', 'p-68', 'p-lc-container-water', 'p-gfg-kadane-max-subarray', 'p-hr-ice-cream-parlor'],
+    postClassProblemIds: ['p-69', 'p-70', 'p-lc-trapping-rain', 'p-gfg-min-platforms', 'p-hr-array-manipulation'],
     completionCriteria: { minSolved: 2, description: 'Solve 2 problems' },
     isPublished: true
   },
@@ -978,6 +978,428 @@ export const INITIAL_PROBLEMS: Problem[] = [
       { input: '6', expectedOutput: '8', isHidden: false },
       { input: '0', expectedOutput: '0', isHidden: false },
       { input: '10', expectedOutput: '55', isHidden: true }
+    ]
+  },
+  // --- LeetCode, GeeksforGeeks & HackerRank Curated Problems ---
+  // 1. Easy: Two Sum (LeetCode #1)
+  {
+    id: 'p-lc-two-sum',
+    topicCode: 'T2',
+    questionNumber: 104,
+    title: 'Two Sum (LeetCode #1)',
+    type: 'inclass',
+    difficulty: 'Easy',
+    platform: 'LeetCode',
+    platformProblemId: 'LC-1',
+    statement: 'Given an array of integers nums and an integer target, return the 0-based indices of the two numbers such that they add up to target.\n\nYou may assume that each input has exactly one valid solution, and you may not use the same element twice. Print the indices separated by a space in ascending order.',
+    inputFormat: 'First integer N (array length), followed by N space-separated integers for nums, followed by integer target.',
+    outputFormat: 'Print two space-separated indices (e.g. "0 1").',
+    constraints: [
+      '2 <= nums.length <= 10^4',
+      '-10^9 <= nums[i] <= 10^9',
+      '-10^9 <= target <= 10^9',
+      'Exactly one valid answer exists.'
+    ],
+    examples: [
+      {
+        input: '4 2 7 11 15 9',
+        output: '0 1',
+        explanation: 'nums[0] + nums[1] = 2 + 7 = 9, so indices 0 and 1 are returned.'
+      },
+      {
+        input: '3 3 2 4 6',
+        output: '1 2',
+        explanation: 'nums[1] + nums[2] = 2 + 4 = 6, so indices 1 and 2 are returned.'
+      }
+    ],
+    starterCode: `def two_sum(nums: list[int], target: int) -> list[int]:\n    # TODO: Return indices of the two numbers that add up to target\n    pass\n\nif __name__ == '__main__':\n    import sys\n    tokens = list(map(int, sys.stdin.read().split()))\n    if tokens:\n        n = tokens[0]\n        nums = tokens[1:1 + n]\n        target = tokens[1 + n]\n        res = two_sum(nums, target)\n        print(f"{res[0]} {res[1]}")`,
+    hints: [
+      'A brute-force double loop checks every pair in O(N^2) time. Can we do better with a hash map?',
+      'Store each number and its index in a hash map as you iterate. Check if (target - current_number) has already been seen.'
+    ],
+    fullSolution: `def two_sum(nums: list[int], target: int) -> list[int]:\n    seen = {}\n    for i, num in enumerate(nums):\n        diff = target - num\n        if diff in seen:\n            return [seen[diff], i]\n        seen[num] = i\n    return []\n\nif __name__ == '__main__':\n    import sys\n    tokens = list(map(int, sys.stdin.read().split()))\n    if tokens:\n        n = tokens[0]\n        nums = tokens[1:1 + n]\n        target = tokens[1 + n]\n        res = two_sum(nums, target)\n        print(f"{res[0]} {res[1]}")`,
+    explanation: 'We iterate through the array once while maintaining a dictionary mapping value -> index. For each element, we compute the complement (target - num). If the complement is already in the dictionary, we return its index and the current index. This reduces time complexity from O(N^2) to O(N).',
+    timeComplexity: 'O(N) single-pass lookup',
+    spaceComplexity: 'O(N) hash map storage',
+    learningTakeaway: 'Hash maps trade linear auxiliary space to convert nested search loops from quadratic O(N^2) to linear O(N) time.',
+    testCases: [
+      { input: '4 2 7 11 15 9', expectedOutput: '0 1', isHidden: false },
+      { input: '3 3 2 4 6', expectedOutput: '1 2', isHidden: false },
+      { input: '2 3 3 6', expectedOutput: '0 1', isHidden: true },
+      { input: '5 1 5 10 20 25 35', expectedOutput: '2 4', isHidden: true }
+    ]
+  },
+  // 2. Easy: Birthday Cake Candles (HackerRank)
+  {
+    id: 'p-hr-birthday-candles',
+    topicCode: 'T2',
+    questionNumber: 105,
+    title: 'Birthday Cake Candles (HackerRank)',
+    type: 'inclass',
+    difficulty: 'Easy',
+    platform: 'HackerRank',
+    platformProblemId: 'HR-CANDLES',
+    statement: 'You are in charge of the cake for a child\'s birthday. You have decided the cake will have one candle for each year of their total age. They will only be able to blow out the tallest of the candles. Count how many candles are tallest.',
+    inputFormat: 'First integer N (number of candles), followed by N space-separated integers representing candle heights.',
+    outputFormat: 'Print a single integer representing the number of candles that are tallest.',
+    constraints: [
+      '1 <= N <= 10^5',
+      '1 <= candles[i] <= 10^7'
+    ],
+    examples: [
+      {
+        input: '4 3 2 1 3',
+        output: '2',
+        explanation: 'Candle heights are [3, 2, 1, 3]. The tallest candles are 3, and there are 2 of them.'
+      },
+      {
+        input: '4 4 4 1 3',
+        output: '2',
+        explanation: 'Maximum height is 4, appearing 2 times.'
+      }
+    ],
+    starterCode: `def birthday_cake_candles(candles: list[int]) -> int:\n    # TODO: Return count of tallest candles\n    pass\n\nif __name__ == '__main__':\n    import sys\n    tokens = list(map(int, sys.stdin.read().split()))\n    if tokens:\n        n = tokens[0]\n        candles = tokens[1:1 + n]\n        print(birthday_cake_candles(candles))`,
+    hints: [
+      'First identify the maximum value across the candle array.',
+      'Count the number of occurrences of that maximum value in a single traversal.'
+    ],
+    fullSolution: `def birthday_cake_candles(candles: list[int]) -> int:\n    if not candles:\n        return 0\n    max_height = max(candles)\n    return candles.count(max_height)\n\nif __name__ == '__main__':\n    import sys\n    tokens = list(map(int, sys.stdin.read().split()))\n    if tokens:\n        n = tokens[0]\n        candles = tokens[1:1 + n]\n        print(birthday_cake_candles(candles))`,
+    explanation: 'We locate the maximum candle height in O(N) time and then tally all elements matching that maximum value. Alternatively, a single loop tracking running max and count achieves the same in one pass.',
+    timeComplexity: 'O(N) linear scan',
+    spaceComplexity: 'O(1) auxiliary space',
+    learningTakeaway: 'Aggregating peak frequencies in an array only requires finding the supremum and counting its occurrences.',
+    testCases: [
+      { input: '4 3 2 1 3', expectedOutput: '2', isHidden: false },
+      { input: '4 4 4 1 3', expectedOutput: '2', isHidden: false },
+      { input: '5 1 2 3 4 5', expectedOutput: '1', isHidden: true },
+      { input: '6 9 9 9 9 9 9', expectedOutput: '6', isHidden: true }
+    ]
+  },
+  // 3. Easy: Missing Number in Array (GeeksforGeeks)
+  {
+    id: 'p-gfg-missing-number',
+    topicCode: 'T2',
+    questionNumber: 106,
+    title: 'Missing Number in Array (GeeksforGeeks)',
+    type: 'inclass',
+    difficulty: 'Easy',
+    platform: 'GeeksforGeeks',
+    platformProblemId: 'GFG-MISSING',
+    statement: 'Given an array of size N-1 containing distinct integers in the range of 1 to N. Find the one missing integer from the array in O(N) time and O(1) space.',
+    inputFormat: 'First integer N, followed by N-1 space-separated integers representing the array.',
+    outputFormat: 'Print the missing integer.',
+    constraints: [
+      '2 <= N <= 10^5',
+      '1 <= arr[i] <= N',
+      'All integers in arr are distinct.'
+    ],
+    examples: [
+      {
+        input: '5 1 2 3 5',
+        output: '4',
+        explanation: 'From 1 to 5, the missing element is 4.'
+      },
+      {
+        input: '2 1',
+        output: '2',
+        explanation: 'From 1 to 2, 1 is given so 2 is missing.'
+      }
+    ],
+    starterCode: `def find_missing_number(n: int, arr: list[int]) -> int:\n    # TODO: Find missing integer between 1 and n\n    pass\n\nif __name__ == '__main__':\n    import sys\n    tokens = list(map(int, sys.stdin.read().split()))\n    if tokens:\n        n = tokens[0]\n        arr = tokens[1:]\n        print(find_missing_number(n, arr))`,
+    hints: [
+      'What is the formula for the sum of the first N natural numbers?',
+      'Gauss summation formula: Sum = N * (N + 1) // 2. Subtract the sum of the array from this total.'
+    ],
+    fullSolution: `def find_missing_number(n: int, arr: list[int]) -> int:\n    expected_sum = n * (n + 1) // 2\n    actual_sum = sum(arr)\n    return expected_sum - actual_sum\n\nif __name__ == '__main__':\n    import sys\n    tokens = list(map(int, sys.stdin.read().split()))\n    if tokens:\n        n = tokens[0]\n        arr = tokens[1:]\n        print(find_missing_number(n, arr))`,
+    explanation: 'The sum of all integers from 1 to N is given by the formula N * (N + 1) // 2. Since exactly one integer is missing, the difference between expected sum and the sum of given elements yields the missing number in O(N) time and O(1) space.',
+    timeComplexity: 'O(N) arithmetic sum',
+    spaceComplexity: 'O(1) constant auxiliary space',
+    learningTakeaway: 'Mathematical properties like arithmetic series summation solve missing-element queries without sorting or extra memory allocation.',
+    testCases: [
+      { input: '5 1 2 3 5', expectedOutput: '4', isHidden: false },
+      { input: '2 1', expectedOutput: '2', isHidden: false },
+      { input: '10 1 2 3 4 5 6 7 8 10', expectedOutput: '9', isHidden: true },
+      { input: '4 1 2 4', expectedOutput: '3', isHidden: true }
+    ]
+  },
+  // 4. Medium: Container With Most Water (LeetCode #11)
+  {
+    id: 'p-lc-container-water',
+    topicCode: 'T3',
+    questionNumber: 107,
+    title: 'Container With Most Water (LeetCode #11)',
+    type: 'inclass',
+    difficulty: 'Medium',
+    platform: 'LeetCode',
+    platformProblemId: 'LC-11',
+    statement: 'You are given an integer array height of length N. There are N vertical lines drawn such that the two endpoints of the i-th line are (i, 0) and (i, height[i]).\n\nFind two lines that together with the x-axis form a container, such that the container contains the most water. Return the maximum amount of water a container can store.',
+    inputFormat: 'First integer N, followed by N space-separated integers representing vertical bar heights.',
+    outputFormat: 'Print a single integer representing the maximum water volume.',
+    constraints: [
+      '2 <= N <= 10^5',
+      '0 <= height[i] <= 10^4'
+    ],
+    examples: [
+      {
+        input: '9 1 8 6 2 5 4 8 3 7',
+        output: '49',
+        explanation: 'Lines at index 1 (height 8) and index 8 (height 7) form area min(8, 7) * (8 - 1) = 7 * 7 = 49.'
+      },
+      {
+        input: '2 1 1',
+        output: '1',
+        explanation: 'Area is min(1, 1) * 1 = 1.'
+      }
+    ],
+    starterCode: `def max_area(height: list[int]) -> int:\n    # TODO: Return maximum water volume using two pointers\n    pass\n\nif __name__ == '__main__':\n    import sys\n    tokens = list(map(int, sys.stdin.read().split()))\n    if tokens:\n        n = tokens[0]\n        heights = tokens[1:1 + n]\n        print(max_area(heights))`,
+    hints: [
+      'The area is bounded by the shorter line: Area = min(height[left], height[right]) * (right - left).',
+      'Start with pointers at both ends (maximum width). Always advance the pointer pointing to the shorter vertical line.'
+    ],
+    fullSolution: `def max_area(height: list[int]) -> int:\n    left = 0\n    right = len(height) - 1\n    max_water = 0\n    while left < right:\n        h = min(height[left], height[right])\n        max_water = max(max_water, h * (right - left))\n        if height[left] < height[right]:\n            left += 1\n        else:\n            right -= 1\n    return max_water\n\nif __name__ == '__main__':\n    import sys\n    tokens = list(map(int, sys.stdin.read().split()))\n    if tokens:\n        n = tokens[0]\n        heights = tokens[1:1 + n]\n        print(max_area(heights))`,
+    explanation: 'We place two pointers at opposite extremes of the array. The width decreases at each step. To maximize area, we must seek a taller boundary, which means we must move the pointer corresponding to the shorter bar inward. This guarantees inspecting all potential maximum configurations in linear time.',
+    timeComplexity: 'O(N) two-pointer traversal',
+    spaceComplexity: 'O(1) in-place auxiliary space',
+    learningTakeaway: 'Greedy inward elimination with two pointers eliminates unviable search spaces without checking all O(N^2) pairs.',
+    testCases: [
+      { input: '9 1 8 6 2 5 4 8 3 7', expectedOutput: '49', isHidden: false },
+      { input: '2 1 1', expectedOutput: '1', isHidden: false },
+      { input: '5 4 3 2 1 4', expectedOutput: '16', isHidden: true },
+      { input: '4 1 2 4 3', expectedOutput: '4', isHidden: true }
+    ]
+  },
+  // 5. Medium: Kadane's Algorithm - Maximum Subarray Sum (GeeksforGeeks)
+  {
+    id: 'p-gfg-kadane-max-subarray',
+    topicCode: 'T3',
+    questionNumber: 108,
+    title: 'Kadane\'s Algorithm: Maximum Subarray Sum (GeeksforGeeks)',
+    type: 'inclass',
+    difficulty: 'Medium',
+    platform: 'GeeksforGeeks',
+    platformProblemId: 'GFG-KADANE',
+    statement: 'Given an array arr[] of N integers. Find the contiguous sub-array (containing at least one number) which has the maximum sum and return its sum.',
+    inputFormat: 'First integer N, followed by N space-separated integers representing the array elements.',
+    outputFormat: 'Print a single integer representing the maximum contiguous subarray sum.',
+    constraints: [
+      '1 <= N <= 10^5',
+      '-10^7 <= arr[i] <= 10^7'
+    ],
+    examples: [
+      {
+        input: '5 1 2 3 -2 5',
+        output: '9',
+        explanation: 'Subarray [1, 2, 3, -2, 5] has the maximum sum 9.'
+      },
+      {
+        input: '4 -1 -2 -3 -4',
+        output: '-1',
+        explanation: 'All numbers are negative; the largest single element is -1.'
+      }
+    ],
+    starterCode: `def max_subarray_sum(arr: list[int]) -> int:\n    # TODO: Implement Kadane\'s algorithm\n    pass\n\nif __name__ == '__main__':\n    import sys\n    tokens = list(map(int, sys.stdin.read().split()))\n    if tokens:\n        n = tokens[0]\n        arr = tokens[1:1 + n]\n        print(max_subarray_sum(arr))`,
+    hints: [
+      'At each position i, decide whether to append arr[i] to the existing running subarray or start fresh from arr[i].',
+      'Recurrence relation: current_max = max(arr[i], current_max + arr[i]). Update overall max_so_far accordingly.'
+    ],
+    fullSolution: `def max_subarray_sum(arr: list[int]) -> int:\n    if not arr:\n        return 0\n    max_so_far = arr[0]\n    current_max = arr[0]\n    for x in arr[1:]:\n        current_max = max(x, current_max + x)\n        max_so_far = max(max_so_far, current_max)\n    return max_so_far\n\nif __name__ == '__main__':\n    import sys\n    tokens = list(map(int, sys.stdin.read().split()))\n    if tokens:\n        n = tokens[0]\n        arr = tokens[1:1 + n]\n        print(max_subarray_sum(arr))`,
+    explanation: 'Kadane\'s algorithm scans the array while maintaining two scalar variables: current_max (maximum subarray sum ending at the current index) and max_so_far (global maximum found so far). If the accumulated sum becomes negative, starting fresh at the next element is strictly superior.',
+    timeComplexity: 'O(N) single-pass dynamic programming',
+    spaceComplexity: 'O(1) auxiliary variables',
+    learningTakeaway: 'Local optimal choice (extend existing sum vs restart) delivers the global maximum in linear time without keeping an array of sub-solutions.',
+    testCases: [
+      { input: '5 1 2 3 -2 5', expectedOutput: '9', isHidden: false },
+      { input: '4 -1 -2 -3 -4', expectedOutput: '-1', isHidden: false },
+      { input: '8 -2 -3 4 -1 -2 1 5 -3', expectedOutput: '7', isHidden: true },
+      { input: '3 5 4 7', expectedOutput: '16', isHidden: true }
+    ]
+  },
+  // 6. Medium: Ice Cream Parlor (HackerRank)
+  {
+    id: 'p-hr-ice-cream-parlor',
+    topicCode: 'T3',
+    questionNumber: 109,
+    title: 'Ice Cream Parlor (HackerRank)',
+    type: 'inclass',
+    difficulty: 'Medium',
+    platform: 'HackerRank',
+    platformProblemId: 'HR-ICECREAM',
+    statement: 'Two friends like to pool their money each time they visit the ice cream parlor. They always pick two distinct flavors such that their total cost equals their pooled money M.\n\nGiven the list of prices for the flavors, find the 1-based indices of the two flavors they will buy and print them in ascending order.',
+    inputFormat: 'First integer M (pooled money), second integer N (flavors count), followed by N space-separated integers for flavor prices.',
+    outputFormat: 'Print two space-separated 1-based indices in ascending order (e.g. "1 4").',
+    constraints: [
+      '1 <= M <= 10^4',
+      '2 <= N <= 10^4',
+      '1 <= cost[i] <= 10^4',
+      'A unique solution is guaranteed.'
+    ],
+    examples: [
+      {
+        input: '4 5 1 4 5 3 2',
+        output: '1 4',
+        explanation: 'Flavors 1 and 4 have costs 1 and 3, which add up to M=4.'
+      },
+      {
+        input: '4 4 2 2 4 3',
+        output: '1 2',
+        explanation: 'Flavors 1 and 2 each cost 2, which add up to M=4.'
+      }
+    ],
+    starterCode: `def ice_cream_parlor(m: int, cost: list[int]) -> tuple[int, int]:\n    # TODO: Return 1-based indices of the two flavors summing to m\n    pass\n\nif __name__ == '__main__':\n    import sys\n    tokens = list(map(int, sys.stdin.read().split()))\n    if tokens:\n        m = tokens[0]\n        n = tokens[1]\n        cost = tokens[2:2 + n]\n        res = ice_cream_parlor(m, cost)\n        print(f"{res[0]} {res[1]}")`,
+    hints: [
+      'Remember that the output requires 1-based indices.',
+      'Use a dictionary mapping flavor price to its 1-based index to achieve O(N) lookup.'
+    ],
+    fullSolution: `def ice_cream_parlor(m: int, cost: list[int]) -> tuple[int, int]:\n    seen = {}\n    for i, price in enumerate(cost):\n        need = m - price\n        if need in seen:\n            return (seen[need], i + 1)\n        seen[price] = i + 1\n    return (0, 0)\n\nif __name__ == '__main__':\n    import sys\n    tokens = list(map(int, sys.stdin.read().split()))\n    if tokens:\n        m = tokens[0]\n        n = tokens[1]\n        cost = tokens[2:2 + n]\n        res = ice_cream_parlor(m, cost)\n        print(f"{res[0]} {res[1]}")`,
+    explanation: 'We iterate through the array once. For each flavor with cost C, we check if complement (M - C) exists in our hash map. Since we process from left to right, seen[need] is strictly less than the current index (i + 1), naturally satisfying the ascending order constraint.',
+    timeComplexity: 'O(N) hash search',
+    spaceComplexity: 'O(N) hash storage',
+    learningTakeaway: 'Hash-based complement matching translates directly to commercial matching algorithms and point-of-sale pooling calculations.',
+    testCases: [
+      { input: '4 5 1 4 5 3 2', expectedOutput: '1 4', isHidden: false },
+      { input: '4 4 2 2 4 3', expectedOutput: '1 2', isHidden: false },
+      { input: '8 4 1 3 4 5', expectedOutput: '2 4', isHidden: true },
+      { input: '9 3 1 2 7', expectedOutput: '2 3', isHidden: true }
+    ]
+  },
+  // 7. Hard: Trapping Rain Water (LeetCode #42)
+  {
+    id: 'p-lc-trapping-rain',
+    topicCode: 'T3',
+    questionNumber: 110,
+    title: 'Trapping Rain Water (LeetCode #42)',
+    type: 'postclass',
+    difficulty: 'Hard',
+    platform: 'LeetCode',
+    platformProblemId: 'LC-42',
+    statement: 'Given N non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining.',
+    inputFormat: 'First integer N, followed by N space-separated integers representing bar heights.',
+    outputFormat: 'Print a single integer indicating total units of trapped rain water.',
+    constraints: [
+      '1 <= N <= 2 * 10^4',
+      '0 <= height[i] <= 10^5'
+    ],
+    examples: [
+      {
+        input: '12 0 1 0 2 1 0 1 3 2 1 2 1',
+        output: '6',
+        explanation: 'Elevation map [0,1,0,2,1,0,1,3,2,1,2,1] traps 6 units of rainwater in troughs.'
+      },
+      {
+        input: '6 4 2 0 3 2 5',
+        output: '9',
+        explanation: 'Water trapped between boundary bars 4 and 5 equals 9 units.'
+      }
+    ],
+    starterCode: `def trap_rain_water(height: list[int]) -> int:\n    # TODO: Calculate total trapped rain water\n    pass\n\nif __name__ == '__main__':\n    import sys\n    tokens = list(map(int, sys.stdin.read().split()))\n    if tokens:\n        n = tokens[0]\n        height = tokens[1:1 + n]\n        print(trap_rain_water(height))`,
+    hints: [
+      'The water trapped above any bar i is min(max_left, max_right) - height[i].',
+      'Instead of precomputing prefix and suffix maximums with O(N) space, maintain left and right pointers with left_max and right_max to solve in O(1) auxiliary space.'
+    ],
+    fullSolution: `def trap_rain_water(height: list[int]) -> int:\n    n = len(height)\n    if n <= 2:\n        return 0\n    left, right = 0, n - 1\n    left_max, right_max = 0, 0\n    water = 0\n    while left < right:\n        if height[left] < height[right]:\n            if height[left] >= left_max:\n                left_max = height[left]\n            else:\n                water += left_max - height[left]\n            left += 1\n        else:\n            if height[right] >= right_max:\n                right_max = height[right]\n            else:\n                water += right_max - height[right]\n            right -= 1\n    return water\n\nif __name__ == '__main__':\n    import sys\n    tokens = list(map(int, sys.stdin.read().split()))\n    if tokens:\n        n = tokens[0]\n        height = tokens[1:1 + n]\n        print(trap_rain_water(height))`,
+    explanation: 'We use two pointers from both sides. When height[left] < height[right], we know the water level at left is governed solely by left_max because right is bounded by a bar at least as tall. If height[left] < left_max, it traps (left_max - height[left]) units. Symmetrically, if height[right] <= height[left], right_max dictates water trapped on the right.',
+    timeComplexity: 'O(N) single two-pointer pass',
+    spaceComplexity: 'O(1) constant auxiliary space',
+    learningTakeaway: 'When the bottleneck of a formula is min(A, B), advancing the pointer at whichever side is currently smaller decouples interdependent state.',
+    testCases: [
+      { input: '12 0 1 0 2 1 0 1 3 2 1 2 1', expectedOutput: '6', isHidden: false },
+      { input: '6 4 2 0 3 2 5', expectedOutput: '9', isHidden: false },
+      { input: '4 3 0 0 3', expectedOutput: '6', isHidden: true },
+      { input: '5 1 2 3 4 5', expectedOutput: '0', isHidden: true }
+    ]
+  },
+  // 8. Hard: Minimum Platforms for Railway Station (GeeksforGeeks)
+  {
+    id: 'p-gfg-min-platforms',
+    topicCode: 'T3',
+    questionNumber: 111,
+    title: 'Minimum Platforms for Railway Station (GeeksforGeeks)',
+    type: 'postclass',
+    difficulty: 'Hard',
+    platform: 'GeeksforGeeks',
+    platformProblemId: 'GFG-PLATFORMS',
+    statement: 'Given arrival and departure times of all trains that reach a railway station, the task is to find the minimum number of platforms required for the railway station so that no train is kept waiting.\n\nAll trains arrive and depart on the same day. Arrival and departure times are represented in 24-hour military format (e.g. 900 for 09:00, 1930 for 19:30). If arrival and departure times coincide, the departure happens after arrival.',
+    inputFormat: 'First integer N (number of trains), followed by N arrival times, followed by N departure times.',
+    outputFormat: 'Print a single integer representing the minimum number of platforms required.',
+    constraints: [
+      '1 <= N <= 5 * 10^4',
+      '0 <= arrival[i] <= departure[i] <= 2359'
+    ],
+    examples: [
+      {
+        input: '6 900 940 950 1100 1500 1800 910 1200 1120 1130 1900 2000',
+        output: '3',
+        explanation: 'At time 950-1100, up to 3 trains occupy the station concurrently. 3 platforms are needed.'
+      },
+      {
+        input: '3 900 1100 1235 1000 1200 1240',
+        output: '1',
+        explanation: 'No two train schedules overlap; 1 platform suffices.'
+      }
+    ],
+    starterCode: `def min_platforms(arr: list[int], dep: list[int]) -> int:\n    # TODO: Find minimum platforms required using sorting and two pointers\n    pass\n\nif __name__ == '__main__':\n    import sys\n    tokens = list(map(int, sys.stdin.read().split()))\n    if tokens:\n        n = tokens[0]\n        arr = tokens[1:1 + n]\n        dep = tokens[1 + n:1 + 2 * n]\n        print(min_platforms(arr, dep))`,
+    hints: [
+      'We do not need to keep track of which train occupies which platform. We only care about the simultaneous train count over time.',
+      'Sort arrival times and departure times independently. Use two pointers to simulate arrivals incrementing platforms and departures releasing platforms.'
+    ],
+    fullSolution: `def min_platforms(arr: list[int], dep: list[int]) -> int:\n    arr.sort()\n    dep.sort()\n    n = len(arr)\n    plat_needed = 0\n    max_plat = 0\n    i = 0\n    j = 0\n    while i < n and j < n:\n        if arr[i] <= dep[j]:\n            plat_needed += 1\n            max_plat = max(max_plat, plat_needed)\n            i += 1\n        else:\n            plat_needed -= 1\n            j += 1\n    return max_plat\n\nif __name__ == '__main__':\n    import sys\n    tokens = list(map(int, sys.stdin.read().split()))\n    if tokens:\n        n = tokens[0]\n        arr = tokens[1:1 + n]\n        dep = tokens[1 + n:1 + 2 * n]\n        print(min_platforms(arr, dep))`,
+    explanation: 'By sorting arrivals and departures separately, we can treat the timeline as an event stream. Whenever a train arrives before the earliest departing train leaves (arr[i] <= dep[j]), an extra platform is occupied. Otherwise, a train departs, freeing a platform. The maximum platforms occupied at any single instant is the minimum capacity required.',
+    timeComplexity: 'O(N log N) sorting both arrays',
+    spaceComplexity: 'O(1) auxiliary space (if sorted in-place)',
+    learningTakeaway: 'Interval overlap problems can be reduced from O(N^2) interval comparisons to O(N log N) event point sweeps.',
+    testCases: [
+      { input: '6 900 940 950 1100 1500 1800 910 1200 1120 1130 1900 2000', expectedOutput: '3', isHidden: false },
+      { input: '3 900 1100 1235 1000 1200 1240', expectedOutput: '1', isHidden: false },
+      { input: '4 50 100 150 200 60 120 180 250', expectedOutput: '1', isHidden: true },
+      { input: '4 100 105 110 115 150 150 150 150', expectedOutput: '4', isHidden: true }
+    ]
+  },
+  // 9. Hard: Array Manipulation (HackerRank)
+  {
+    id: 'p-hr-array-manipulation',
+    topicCode: 'T3',
+    questionNumber: 112,
+    title: 'Array Manipulation (HackerRank)',
+    type: 'postclass',
+    difficulty: 'Hard',
+    platform: 'HackerRank',
+    platformProblemId: 'HR-MANIP',
+    statement: 'Starting with a 1-indexed array of zeros of size N and a list of M operations, for each operation add a value K to all array elements between 1-based indices A and B inclusive.\n\nAfter all operations have been applied, return the maximum value in the array. A naive approach of updating every index in the range will time out with O(N * M) time. An optimal difference-array prefix sum achieves O(N + M).',
+    inputFormat: 'First line has two integers N and M. Followed by M triplets of integers A, B, and K.',
+    outputFormat: 'Print the maximum value in the array after all operations.',
+    constraints: [
+      '3 <= N <= 10^7',
+      '1 <= M <= 2 * 10^5',
+      '1 <= A <= B <= N',
+      '0 <= K <= 10^9'
+    ],
+    examples: [
+      {
+        input: '5 3 1 2 100 2 5 100 3 4 100',
+        output: '200',
+        explanation: 'After operations, array values are [100, 200, 200, 200, 100]. Maximum value is 200.'
+      },
+      {
+        input: '4 3 2 3 603 1 1 286 4 4 882',
+        output: '882',
+        explanation: 'Max element is 882 at index 4.'
+      }
+    ],
+    starterCode: `def array_manipulation(n: int, queries: list[tuple[int, int, int]]) -> int:\n    # TODO: Compute maximum array value in O(N + M) time using difference array\n    pass\n\nif __name__ == '__main__':\n    import sys\n    tokens = list(map(int, sys.stdin.read().split()))\n    if tokens:\n        n = tokens[0]\n        m = tokens[1]\n        queries = []\n        idx = 2\n        for _ in range(m):\n            queries.append((tokens[idx], tokens[idx + 1], tokens[idx + 2]))\n            idx += 3\n        print(array_manipulation(n, queries))`,
+    hints: [
+      'Adding K to range [A, B] is equivalent to adding +K at index A and -K at index B + 1 in a difference array.',
+      'After recording all operations in O(M) time, compute the prefix sums of the difference array in a single O(N) sweep.'
+    ],
+    fullSolution: `def array_manipulation(n: int, queries: list[tuple[int, int, int]]) -> int:\n    diff = [0] * (n + 2)\n    for a, b, k in queries:\n        diff[a] += k\n        diff[b + 1] -= k\n    max_val = 0\n    curr = 0\n    for i in range(1, n + 1):\n        curr += diff[i]\n        if curr > max_val:\n            max_val = curr\n    return max_val\n\nif __name__ == '__main__':\n    import sys\n    tokens = list(map(int, sys.stdin.read().split()))\n    if tokens:\n        n = tokens[0]\n        m = tokens[1]\n        queries = []\n        idx = 2\n        for _ in range(m):\n            queries.append((tokens[idx], tokens[idx + 1], tokens[idx + 2]))\n            idx += 3\n        print(array_manipulation(n, queries))`,
+    explanation: 'Instead of adding K to every element in [A, B], we record delta changes at boundaries: diff[A] += K and diff[B + 1] -= K in O(1) per query. Once all queries are applied, the actual values are the prefix sums of diff. We track the running prefix sum and retain the maximum in O(N + M) total time.',
+    timeComplexity: 'O(N + M) prefix sum difference sweep',
+    spaceComplexity: 'O(N) difference array',
+    learningTakeaway: 'Difference arrays transform batch range updates into constant O(1) boundary writes followed by a single linear prefix sweep.',
+    testCases: [
+      { input: '5 3 1 2 100 2 5 100 3 4 100', expectedOutput: '200', isHidden: false },
+      { input: '4 3 2 3 603 1 1 286 4 4 882', expectedOutput: '882', isHidden: false },
+      { input: '10 3 1 5 3 4 8 7 6 9 1', expectedOutput: '10', isHidden: true },
+      { input: '5 1 1 5 50', expectedOutput: '50', isHidden: true }
     ]
   }
 ];

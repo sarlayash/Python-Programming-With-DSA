@@ -368,6 +368,7 @@ export default function App() {
                     learner={userRole === 'learner' ? currentUser : null}
                     onProblemSolved={handleProblemSolved}
                     onOpenAuth={() => handleOpenAuth('learner')}
+                    onSelectProblem={(id) => setSelectedProblemId(id)}
                   />
                 )}
 
