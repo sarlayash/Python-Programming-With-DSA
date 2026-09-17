@@ -13,6 +13,7 @@ import { SpinningWheelView } from './components/SpinningWheelView';
 import { DebuggingLab } from './components/DebuggingLab';
 import { PythonFunFactsView } from './components/PythonFunFactsView';
 import { PythonFundamentalsView } from './components/PythonFundamentalsView';
+import { FinalAssessmentView } from './components/FinalAssessmentView';
 import { api, setStoredToken, getStoredToken, clearStoredToken } from './lib/api';
 import { logoutFromFirebase, checkFirebaseRedirectResult } from './lib/firebase';
 import { parseVerificationTarget, ParsedVerificationTarget } from './lib/verification';
@@ -430,6 +431,20 @@ export default function App() {
                     onNavigateToVerify={(certId) => {
                       setVerifyTarget({ type: 'cert', id: certId });
                     }}
+                  />
+                )}
+
+                {currentTab === 'final-assessment' && (
+                  <FinalAssessmentView
+                    learner={userRole === 'learner' ? currentUser : null}
+                    onOpenAuth={() => handleOpenAuth('learner')}
+                    onNavigateToVerify={(certId) => {
+                      setVerifyTarget({ type: 'cert', id: certId });
+                    }}
+                    onCertificateEarned={(newCert) => {
+                      setCertificate(newCert);
+                    }}
+                    onBackToDashboard={() => setCurrentTab('dashboard')}
                   />
                 )}
 

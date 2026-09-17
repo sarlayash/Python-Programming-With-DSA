@@ -19,7 +19,8 @@ import {
   Zap,
   Trophy,
   Bug,
-  GraduationCap
+  GraduationCap,
+  ShieldCheck
 } from 'lucide-react';
 import { LearnerProfile, DayCurriculum, Problem, EarnedBadge } from '../types';
 
@@ -189,6 +190,67 @@ export const LearnerDashboard: React.FC<LearnerDashboardProps> = ({
             {topicsCompletedCount >= 3 ? 'Cert Eligible' : '1 Cert Available'}
           </div>
         </div>
+      </div>
+
+      {/* HIGHLIGHT FINAL ASSESSMENT ON HOME PAGE */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0a0f1d] via-[#0f172a] to-[#1e1b4b] border-2 border-amber-500/50 p-6 sm:p-8 text-white shadow-xl">
+        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+          <div className="space-y-3 max-w-2xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-3 py-1 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 text-xs font-black uppercase tracking-wider rounded-full shadow-md flex items-center gap-1.5">
+                <Trophy className="w-3.5 h-3.5" />
+                FINAL ASSESSMENT &bull; DAY 1 TO DAY 10
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3" /> QR-Verified Unique Certificates
+              </span>
+            </div>
+
+            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+              Certified Capstone Final Assessment
+            </h2>
+
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              Demonstrate complete Python & DSA mastery across all 10 curriculum days. Proctored 90-minute examination featuring <strong className="text-amber-400">200 Diagnostic MCQs</strong> with strict anti-guess option balancing, plus <strong className="text-indigo-300">50 Think & Type technical challenges</strong>. Score 60%+ to earn an executive cryptographically-verified certificate.
+            </p>
+
+            <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-slate-300">
+              <div className="flex items-center gap-1.5 bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-700">
+                <Clock className="w-3.5 h-3.5 text-amber-400" />
+                <span><strong>90 Min</strong> Time Bound</span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-700">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Anti-Guess Balanced Distribution</span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-700">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                <span>200 MCQs + 50 Think & Type</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="shrink-0 w-full lg:w-auto flex flex-col sm:flex-row lg:flex-col gap-3">
+            <button
+              onClick={() => onNavigate('final-assessment')}
+              className="px-6 py-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm rounded-xl shadow-xl shadow-amber-950/40 flex items-center justify-center gap-2.5 transition-all transform hover:-translate-y-0.5 active:scale-95"
+            >
+              <Trophy className="w-5 h-5 text-slate-950" />
+              Take Final Assessment
+              <ArrowRight className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => onNavigate('certificate')}
+              className="px-4 py-2.5 bg-slate-900/80 hover:bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 flex items-center justify-center gap-2 transition-all"
+            >
+              <FileCheck className="w-3.5 h-3.5 text-amber-400" />
+              View Sample Certificate
+            </button>
+          </div>
+        </div>
+
+        {/* Ambient subtle glow background */}
+        <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-10 pointer-events-none bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:20px_20px]"></div>
       </div>
 
       {/* Daily Spinning Wheel & 10 MCQs Feature Card */}

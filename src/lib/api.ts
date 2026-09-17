@@ -8,7 +8,8 @@ import {
   Certificate,
   AppNotification,
   AuditLog,
-  AdminOverviewStats
+  AdminOverviewStats,
+  FinalAssessmentResult
 } from '../types';
 import {
   loadClientDB,
@@ -21,6 +22,8 @@ import {
   clientSubmitMCQQuiz,
   clientSubmitDebuggingReward,
   clientClaimFunFact,
+  clientSubmitFinalAssessment,
+  clientGetFinalAssessmentResult,
   MASTER_CERTIFICATE
 } from './clientStore';
 import { INITIAL_BADGES } from '../../server/curriculumData';
@@ -314,6 +317,52 @@ export const api = {
 
   getLearnerCertificate: async () => {
     return api.getMyCertificate();
+  },
+
+  submitFinalAssessment: async (
+    learnerName: string,
+    learnerEmail: string,
+    mcqAnswers: Record<string, string>,
+    thinkTypeAnswers: Record<string, string>,
+    timeSpentSeconds: number
+  ) => {
+    try {
+      return await request<{
+        success: boolean;
+        result: FinalAssessmentResult;
+        certificate: Certificate | null;
+      }>('/api/assessment/final/submit', {
+        method: 'POST',
+        body: JSON.stringify({
+          learnerName,
+          learnerEmail,
+          mcqAnswers,
+          thinkTypeAnswers,
+          timeSpentSeconds
+        })
+      });
+    } catch {
+      const session = getClientSession();
+      const learnerId = session?.role === 'learner' ? session.user.id : 'usr_kapil_01';
+      return clientSubmitFinalAssessment(
+        learnerId,
+        learnerName,
+        learnerEmail,
+        mcqAnswers,
+        thinkTypeAnswers,
+        timeSpentSeconds
+      );
+    }
+  },
+
+  getFinalAssessmentResult: async () => {
+    try {
+      return await request<FinalAssessmentResult | null>('/api/assessment/final/result');
+    } catch {
+      const session = getClientSession();
+      const learnerId = session?.role === 'learner' ? session.user.id : 'usr_kapil_01';
+      return clientGetFinalAssessmentResult(learnerId);
+    }
   },
 
   verifyCertificate: async (certId: string) => {

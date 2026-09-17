@@ -234,6 +234,49 @@ export interface EarnedBadge {
   icon: string;
 }
 
+export interface FinalAssessmentTopicScore {
+  topicCode: string;
+  topicName: string;
+  score: number;
+  total: number;
+  percentage: number;
+}
+
+export interface FinalAssessmentQuestionResult {
+  id: string;
+  type: 'mcq' | 'think_type';
+  topicCode: string;
+  topicName: string;
+  questionNumber: number;
+  question: string;
+  userAnswer?: string;
+  correctAnswer: string;
+  isCorrect: boolean;
+  explanation: string;
+}
+
+export interface FinalAssessmentResult {
+  id: string;
+  learnerId: string;
+  learnerName: string;
+  learnerEmail: string;
+  submittedAt: string;
+  timeSpentSeconds: number;
+  totalScore: number;
+  totalQuestions: number; // 250
+  mcqScore: number;
+  mcqTotal: number; // 200
+  thinkTypeScore: number;
+  thinkTypeTotal: number; // 50
+  percentage: number;
+  passed: boolean;
+  grade: string;
+  certificateId?: string;
+  certificate?: Certificate;
+  topicBreakdown: FinalAssessmentTopicScore[];
+  questionResults?: FinalAssessmentQuestionResult[];
+}
+
 export interface Certificate {
   certificateId: string;
   learnerId: string;

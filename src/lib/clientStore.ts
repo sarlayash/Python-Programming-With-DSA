@@ -1,4 +1,5 @@
 import { INITIAL_CURRICULUM, INITIAL_PROBLEMS, INITIAL_BADGES } from '../../server/curriculumData';
+import { FINAL_ASSESSMENT_MCQS, FINAL_ASSESSMENT_THINK_TYPE } from '../data/finalAssessmentData';
 import {
   LearnerProfile,
   DayCurriculum,
@@ -9,7 +10,10 @@ import {
   Certificate,
   AppNotification,
   AuditLog,
-  AdminOverviewStats
+  AdminOverviewStats,
+  FinalAssessmentResult,
+  FinalAssessmentTopicScore,
+  FinalAssessmentQuestionResult
 } from '../types';
 import { getVerificationUrl, generateHighContrastQR } from './verification';
 import { fallbackExecutePython } from './pyodideRunner';
@@ -337,6 +341,7 @@ export interface ClientDB {
   certificates: Certificate[];
   notifications: AppNotification[];
   auditLogs: AuditLog[];
+  finalAssessmentResults?: Record<string, FinalAssessmentResult>;
 }
 
 function getInitialDB(): ClientDB {
@@ -356,6 +361,7 @@ function getInitialDB(): ClientDB {
     badges: INITIAL_BADGES,
     earnedBadges: [...INITIAL_EARNED_BADGES],
     certificates: [MASTER_CERTIFICATE],
+    finalAssessmentResults: {},
     notifications: [
       {
         id: 'notif-welcome',
@@ -978,6 +984,247 @@ export function clientClaimFunFact(
   }
 
   return { success: true, learner };
+}
+
+export function clientGetFinalAssessmentResult(learnerId: string): FinalAssessmentResult | null {
+  const db = loadClientDB();
+  if (db.finalAssessmentResults && db.finalAssessmentResults[learnerId]) {
+    return db.finalAssessmentResults[learnerId];
+  }
+  try {
+    const raw = localStorage.getItem(`final_assessment_result_${learnerId}`);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return null;
+}
+
+export function clientSubmitFinalAssessment(
+  learnerId: string,
+  learnerName: string,
+  learnerEmail: string,
+  mcqAnswers: Record<string, string>,
+  thinkTypeAnswers: Record<string, string>,
+  timeSpentSeconds: number
+): {
+  success: boolean;
+  result: FinalAssessmentResult;
+  certificate: Certificate | null;
+} {
+  const db = loadClientDB();
+
+  let mcqScore = 0;
+  const questionResults: FinalAssessmentQuestionResult[] = [];
+  const topicStats: Record<string, { name: string; score: number; total: number }> = {};
+
+  // Initialize topic stats
+  const topicNames: Record<string, string> = {
+    T1: 'Pattern Programming, Matrix Grids & Logic Building',
+    T2: 'Array Essentials, In-Place Mutability & Prefix Sums',
+    T3: 'Two-Pointer Algorithms & Sliding Window Paradigms',
+    T4: '2D Matrices, Matrix Rotations & Grid Traversal',
+    T5: 'Strings, ASCII Arithmetic & Hash Tables',
+    T6: 'Recursion, Call Stacks & Backtracking',
+    T7: 'Stacks, Queues & Monotonic Structures',
+    T8: 'Linked Lists & Pointer Rewiring',
+    T9: 'Trees, Binary Search Trees & Graph Basics',
+    T10: 'Dynamic Programming, Greedy & Optimization'
+  };
+
+  for (let i = 1; i <= 10; i++) {
+    const code = `T${i}`;
+    topicStats[code] = { name: topicNames[code] || code, score: 0, total: 0 };
+  }
+
+  // 1. Grade MCQs (200 Questions)
+  for (const q of FINAL_ASSESSMENT_MCQS) {
+    if (!topicStats[q.topicCode]) {
+      topicStats[q.topicCode] = { name: q.topicName, score: 0, total: 0 };
+    }
+    topicStats[q.topicCode].total += 1;
+
+    const userAns = mcqAnswers[q.id];
+    const isCorrect = userAns === q.correctOptionId;
+    if (isCorrect) {
+      mcqScore += 1;
+      topicStats[q.topicCode].score += 1;
+    }
+
+    questionResults.push({
+      id: q.id,
+      type: 'mcq',
+      topicCode: q.topicCode,
+      topicName: q.topicName,
+      questionNumber: q.questionNumber,
+      question: q.question,
+      userAnswer: userAns,
+      correctAnswer: q.correctOptionId,
+      isCorrect,
+      explanation: q.explanation
+    });
+  }
+
+  // 2. Grade Think & Type (50 Questions)
+  let thinkTypeScore = 0;
+  for (const q of FINAL_ASSESSMENT_THINK_TYPE) {
+    if (!topicStats[q.topicCode]) {
+      topicStats[q.topicCode] = { name: q.topicName, score: 0, total: 0 };
+    }
+    topicStats[q.topicCode].total += 1;
+
+    const rawUserAns = (thinkTypeAnswers[q.id] || '').trim();
+    const cleanUser = rawUserAns.toLowerCase().replace(/\s+/g, ' ');
+    const accepted = [q.primaryAnswer, ...(q.acceptableAnswers || [])].map(a =>
+      a.trim().toLowerCase().replace(/\s+/g, ' ')
+    );
+
+    const isCorrect = accepted.includes(cleanUser);
+    if (isCorrect) {
+      thinkTypeScore += 1;
+      topicStats[q.topicCode].score += 1;
+    }
+
+    questionResults.push({
+      id: q.id,
+      type: 'think_type',
+      topicCode: q.topicCode,
+      topicName: q.topicName,
+      questionNumber: q.questionNumber,
+      question: q.question,
+      userAnswer: rawUserAns || undefined,
+      correctAnswer: q.primaryAnswer,
+      isCorrect,
+      explanation: q.explanation
+    });
+  }
+
+  const totalScore = mcqScore + thinkTypeScore;
+  const totalQuestions = FINAL_ASSESSMENT_MCQS.length + FINAL_ASSESSMENT_THINK_TYPE.length; // 250
+  const percentage = Math.round((totalScore / totalQuestions) * 1000) / 10;
+  const passed = percentage >= 60; // 60% passing benchmark
+
+  const grade =
+    percentage >= 95
+      ? 'Executive Pinnacle Grand Master (Distinction with Highest Honors)'
+      : percentage >= 85
+      ? 'Executive Grand Master (Distinction Honors)'
+      : percentage >= 70
+      ? 'Executive Certified Practitioner (Merit)'
+      : percentage >= 60
+      ? 'Certified Practitioner (Pass)'
+      : 'Did Not Pass (Retake Recommended)';
+
+  const topicBreakdown: FinalAssessmentTopicScore[] = Object.keys(topicStats)
+    .sort((a, b) => parseInt(a.replace('T', ''), 10) - parseInt(b.replace('T', ''), 10))
+    .map(code => {
+      const st = topicStats[code];
+      return {
+        topicCode: code,
+        topicName: st.name,
+        score: st.score,
+        total: st.total,
+        percentage: st.total > 0 ? Math.round((st.score / st.total) * 1000) / 10 : 0
+      };
+    });
+
+  let issuedCertificate: Certificate | null = null;
+  let certificateId: string | undefined = undefined;
+
+  if (passed) {
+    certificateId = `CERT-FINAL-${Math.random().toString(36).substring(2, 8).toUpperCase()}-${Date.now().toString().slice(-4)}`;
+    issuedCertificate = {
+      certificateId,
+      learnerId,
+      learnerName: learnerName || 'Learner',
+      learnerEmail: learnerEmail || 'learner@kapildsa.io',
+      courseTitle: 'Python Programming With DSA - Grand Master Certified Final Assessment',
+      subtitle: '250 Technical Challenges Completed • 90-Minute Proctored Evaluation',
+      issuedDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+      status: 'issued',
+      verificationUrl: getVerificationUrl('cert', certificateId),
+      grade,
+      completionSummary: {
+        totalSolved: totalScore,
+        totalAttempted: 250,
+        daysCompleted: 10
+      }
+    };
+
+    // Save to certificates registry
+    if (!db.certificates) db.certificates = [];
+    // If learner already has a certificate, replace or append
+    const existingIdx = db.certificates.findIndex(c => c.learnerId === learnerId && c.courseTitle.includes('Final Assessment'));
+    if (existingIdx >= 0) {
+      db.certificates[existingIdx] = issuedCertificate;
+    } else {
+      db.certificates.unshift(issuedCertificate);
+    }
+
+    // Award bonus reward points
+    const learner = db.learners[learnerId];
+    if (learner) {
+      learner.rewardPoints = (learner.rewardPoints || 0) + 1000;
+      if (!learner.completedDays.includes('T10')) {
+        learner.completedDays = Array.from(new Set([...learner.completedDays, 'T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10']));
+      }
+    }
+
+    db.notifications.unshift({
+      id: `notif-cert-${Date.now()}`,
+      title: '🏆 Grand Master Certificate Issued!',
+      message: `Congratulations ${learnerName}! You scored ${totalScore}/250 (${percentage}%) on the Certified Final Assessment. Certificate ID: ${certificateId}`,
+      type: 'certificate',
+      targetUserId: learnerId,
+      read: false,
+      createdAt: new Date().toISOString()
+    });
+
+    db.auditLogs.unshift({
+      id: `audit-cert-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      adminId: 'SYSTEM',
+      action: 'FINAL_ASSESSMENT_CERTIFICATE_ISSUED',
+      details: `${learnerName} passed Final Assessment (${totalScore}/250, ${percentage}%) with Grade '${grade}'. Cert: ${certificateId}`
+    });
+  }
+
+  const result: FinalAssessmentResult = {
+    id: `fa-res-${Date.now()}`,
+    learnerId,
+    learnerName,
+    learnerEmail,
+    submittedAt: new Date().toISOString(),
+    timeSpentSeconds,
+    totalScore,
+    totalQuestions,
+    mcqScore,
+    mcqTotal: FINAL_ASSESSMENT_MCQS.length,
+    thinkTypeScore,
+    thinkTypeTotal: FINAL_ASSESSMENT_THINK_TYPE.length,
+    percentage,
+    passed,
+    grade,
+    certificateId,
+    certificate: issuedCertificate || undefined,
+    topicBreakdown,
+    questionResults
+  };
+
+  if (!db.finalAssessmentResults) db.finalAssessmentResults = {};
+  db.finalAssessmentResults[learnerId] = result;
+  saveClientDB(db);
+
+  try {
+    localStorage.setItem(`final_assessment_result_${learnerId}`, JSON.stringify(result));
+    localStorage.setItem('final_assessment_latest_result', JSON.stringify(result));
+  } catch (e) {
+    console.warn('Could not store full assessment result in localStorage:', e);
+  }
+
+  return {
+    success: true,
+    result,
+    certificate: issuedCertificate
+  };
 }
 
 

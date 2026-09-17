@@ -15,7 +15,8 @@ import {
   Terminal,
   ExternalLink,
   ChevronRight,
-  X
+  X,
+  Trophy
 } from 'lucide-react';
 
 interface SidebarNavProps {
@@ -123,6 +124,15 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
     {
       groupTitle: 'Credentials & Audit',
       items: [
+        {
+          id: 'final-assessment',
+          label: 'Final Assessment',
+          description: 'Day 1-10 Certified Exam',
+          icon: Trophy,
+          badge: '90 MIN',
+          badgeStyle: 'bg-amber-400/20 text-amber-300 border-amber-400/30 font-bold',
+          pulseDot: true
+        },
         {
           id: 'badges',
           label: 'My Badges',
